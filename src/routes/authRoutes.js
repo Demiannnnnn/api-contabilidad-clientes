@@ -1,0 +1,21 @@
+const express = require('express');
+const router = express.Router();
+const authController = require('../controllers/authController');
+const authMiddleware = require('../middlewares/authRequest');
+const {validateRegister, validateLogin, validateChangePassword} = require('../middlewares/validateRequest');
+
+// Ruta para el registro de usuarios
+router.post('/register', validateRegister, authController.register);
+
+// Ruta para el inicio de sesión
+router.post('/login', validateLogin, authController.login);
+
+// Ruta para el cambio de contraseña
+router.post('/change-password', authMiddleware, validateChangePassword, authController.changePassword);
+
+router.get('/me', authMiddleware, authController.getProfile);
+
+module.exports = router;
+
+
+

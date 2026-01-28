@@ -2,12 +2,13 @@
   "name": "server-sistema-contabiliadad-clientes",
   "version": "1.0.0",
   "description": "Server api rest para sistema propio de contabilidad y clientes",
-  "main": "index.js",
+  "main": "src/server.js",
   "directories": {
     "test": "tests"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "dev": "nodemon src/server.js",
+    "start": "node src/server.js"
   },
   "repository": {
     "type": "git",
