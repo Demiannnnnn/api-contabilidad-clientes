@@ -2,15 +2,13 @@ const express = require('express');
 const router = express.Router();
 const clienteService = require('../controllers/productoController');
 
-// Obtener todos productos de un cliente
-router.get('/cliente/:clienteId', productoController.getProductosByClienteId);
+/// Ruta para obtener todos los productos
+router.get('/productos', clienteService.getAllProductos);
 
-// Crear un nuevo producto
-router.post('/', productoController.createProducto);
+// Ruta para obtener un producto por ID
+router.get('/productos/:id', clienteService.getProductoById);
 
-// Actualizar un producto existente
-router.put('/:id', productoController.updateProducto);
+// Ruta para hacer backup de todos los productos
+router.post('/productos/backup/all', clienteService.getProductosBackup);
 
-// Eliminar un producto
-router.delete('/:id', productoController.deleteProducto);
 module.exports = router;
