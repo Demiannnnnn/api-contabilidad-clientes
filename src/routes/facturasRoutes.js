@@ -1,17 +1,34 @@
 const express = require('express');
 const router = express.Router();
-const clienteController = require('../controllers/facturasController');
+const facturasController = require('../controllers/facturasController');
+
+///Rutas especificas
+
+// Cliente obtiene backup de todas las facturas
+router.get('/facturas/backup/all', facturasController.getFacturasBackup);
+
+// Cliente sincroniza sus facturas locales
+router.post('/facturas/sync', facturasController.syncFacturas);
 
 
-// Ruta para obtener todas las facturas
-router.get('/facturas', clienteController.getAllFacturas);
+///Coleccion Facturas
 
-// Ruta para obtener una factura por ID
-router.get('/facturas/:id', clienteController.getFacturaById);
 
-// Ruta para hacer backup de todas las facturas
-router.post('/facturas/backup/all', clienteController.getFacturasBackup);
+//Cliente obtiene todas las facturas
+router.get('/facturas', facturasController.getAllFacturas);
 
+// Cliente crea una nueva factura
+router.post('/facturas', facturasController.createFactura);
+
+///Recurso individual
+
+
+
+// Cliente actualiza una factura existente
+router.put('/facturas/:id', facturasController.updateFactura);
+
+//Cliente elimina una factura por ID
+router.delete('/facturas/:id', facturasController.deleteFactura);
 
 
 module.exports = router;
