@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const facturasController = require('../controllers/facturasController');
+const facturaController = require('../controllers/facturaController');
 
 ///Rutas especificas
 

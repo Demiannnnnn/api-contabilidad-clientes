@@ -2,9 +2,8 @@ const express = require('express');
 const router = express.Router();
 const updateController = require('../controllers/updateController');
 
-// Route to handle updating a resource
+// Actualizacion de app
 router.get ('/update/check/', updateController.checkForUpdates);
-router.get ('/update/download/', updateController.downloadUpdate);
-
+router.get ('/update/download/:version?', updateController.downloadUpdate);
 
 module.exports = router;

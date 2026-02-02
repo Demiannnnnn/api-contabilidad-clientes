@@ -8,17 +8,17 @@ const licenceController = require('../controllers/licenceController');
 //Cliente envia su licencia para validacion
 router.post('/licence/validate', licenceController.validateLicence);
 
-//Colececion Licencias
+//Cliente verifica el estado de su licencia
+router.get('/licence/status', licenceController.getLicenceStatus);
+
+
+///Recurso unico
 
 //Cliente obtiene licencia
 router.get('/licence', licenceController.getLicence);
 
-
-//Recurso individual
-
-
 //Cliente actualiza su licencia
-router.put('/licence/:id', licenceController.updateLicence);
+router.put('/licence', licenceController.updateLicence);
 
 
 
