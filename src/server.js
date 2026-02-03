@@ -2,6 +2,10 @@ const express = require('express');
 const server = express();
 require ('dotenv').config();
 
+
+const PORT = process.env.PORT || 3000;
+const HOST = process.env.HOST || 'localhost';
+
 //middlewares globables
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));

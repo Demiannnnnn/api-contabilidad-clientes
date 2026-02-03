@@ -3,12 +3,13 @@ const validateLicence = (req, res) => {
     res.json({ message: 'Licencia validada' });
 }
 
-const getAllLicences = (req, res) => {
-    // Lógica para obtener todas las licencias
-    res.json({ message: 'Lista de todas las licencias' });
+const getLicenceStatus = (req, res) => {
+    // Lógica para obtener el estado de una licencia
+    res.json({ message: 'Estado de la licencia obtenido' });
 }
 
-const getLicenceById = (req, res) => {
+
+const getLicence= (req, res) => {
     // Lógica para obtener una licencia por ID
     res.json({ message: `Licencia con ID ${req.params.id} obtenida` });
 }
@@ -18,9 +19,10 @@ const updateLicence = (req, res) => {
     res.json({ message: `Licencia con ID ${req.params.id} actualizada` });
 }
 
+
 module.exports = {
     validateLicence,
-    getAllLicences,
-    getLicenceById,
+    getLicenceStatus,
+    getLicence,
     updateLicence
 };
