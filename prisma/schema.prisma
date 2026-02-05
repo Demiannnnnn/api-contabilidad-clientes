@@ -1,9 +1,3 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-
 generator client {
   provider = "prisma-client-js"
   output   = "../src/generated/prisma"
@@ -15,17 +9,155 @@ datasource db {
 }
 
 model User {
-  id             Int      @id @default(autoincrement())
-  email          String   @unique
-  password       String
-  name           String?
-  role           Role     @default(USER)
-  createdAt      DateTime @default(now())
-  updatedAt      DateTime @updatedAt
+  id        Int      @id @default(autoincrement())
+  email     String   @unique
+  password  String
+  name      String?
+  role      Role     @default(PERSONAL)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Datos tributarios del User (para emitir documentos)
+  rut           String   // RUT del emisor
+  razonSocial   String?   // Nombre de la empresa
+  giro          String?   // Actividad económica
+  direccion     String?
+
+  clientes  Cliente[]
+  productos Producto[]
+  documentos Documento[]  // Facturas y Boletas
+
+  // Relación Contador
+  clientesAsignados ContadorCliente[] @relation("ContadorRelation")
+  miContador        ContadorCliente?  @relation("ClienteRelation")
 }
 
 enum Role {
-  ADMIN
-  USER
+  ADMIN     // Tú
+  EMPRESA   // Empresa - factura y boletas
+  PERSONAL  // Persona natural - factura y boletas
+  CONTADOR  // Solo ve datos de clientes asignados
 }
 
+// Relación Contador <-> Clientes
+model ContadorCliente {
+  id         Int      @id @default(autoincrement())
+  contadorId Int
+  contador   User     @relation("ContadorRelation", fields: [contadorId], references: [id])
+  clienteId  Int      @unique
+  cliente    User     @relation("ClienteRelation", fields: [clienteId], references: [id])
+  createdAt  DateTime @default(now())
+
+  @@unique([contadorId, clienteId])
+}
+
+// Clientes del User (a quienes les emite documentos)
+model Cliente {
+  id        Int           @id @default(autoincrement())
+  userId    Int
+  user      User          @relation(fields: [userId], references: [id])
+  
+  // Datos del cliente
+  rut       String?       // Opcional para boletas
+  nombre    String
+  email     String?
+  telefono  String?
+  direccion String?
+  giro      String?       // Para facturas
+  
+  // Tipo de cliente
+  tipo      TipoCliente   @default(PERSONA)
+  
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  documentos Documento[]
+
+  @@unique([userId, rut])
+}
+
+enum TipoCliente {
+  PERSONA   // Consumidor final - boletas
+  EMPRESA   // Empresa con RUT - facturas
+}
+
+// Productos o servicios
+model Producto {
+  id          Int             @id @default(autoincrement())
+  userId      Int
+  user        User            @relation(fields: [userId], references: [id])
+  codigo      String
+  nombre      String
+  descripcion String?
+  precio      Decimal         @db.Decimal(10, 0)  // Sin decimales (pesos chilenos)
+  stock       Int             @default(0)
+  exento      Boolean         @default(false)     // ¿Exento de IVA?
+  activo      Boolean         @default(true)
+  createdAt   DateTime        @default(now())
+  updatedAt   DateTime        @updatedAt
+  items       DocumentoItem[]
+
+  @@unique([userId, codigo])
+}
+
+// Documento tributario (Factura o Boleta)
+model Documento {
+  id          Int              @id @default(autoincrement())
+  userId      Int
+  user        User             @relation(fields: [userId], references: [id])
+  
+  // Tipo y número
+  tipo        TipoDocumento
+  numero      Int              // Folio
+  
+  // Fecha
+  fecha       DateTime         @default(now())
+  
+  // Cliente (opcional para boletas)
+  clienteId   Int?
+  cliente     Cliente?         @relation(fields: [clienteId], references: [id])
+  
+  // Montos (pesos chilenos, sin decimales)
+  neto        Decimal          @db.Decimal(10, 0)
+  iva         Decimal          @db.Decimal(10, 0)  // 19%
+  total       Decimal          @db.Decimal(10, 0)
+  
+  // Estado
+  estado      EstadoDocumento  @default(EMITIDO)
+  
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+  items       DocumentoItem[]
+
+  @@unique([userId, tipo, numero])  // Folio único por tipo
+}
+
+enum TipoDocumento {
+  FACTURA_ELECTRONICA     // Factura afecta
+  FACTURA_EXENTA          // Factura exenta de IVA
+  BOLETA_ELECTRONICA      // Boleta afecta
+  BOLETA_EXENTA           // Boleta exenta
+  NOTA_CREDITO            // Anula o modifica factura
+  NOTA_DEBITO             // Aumenta monto
+  GUIA_DESPACHO           // Traslado de mercadería
+}
+
+enum EstadoDocumento {
+  BORRADOR    // Aún no emitido
+  EMITIDO     // Emitido al SII
+  ANULADO     // Anulado con nota de crédito
+}
+
+// Items del documento
+model DocumentoItem {
+  id          Int       @id @default(autoincrement())
+  documentoId Int
+  documento   Documento @relation(fields: [documentoId], references: [id])
+  productoId  Int
+  producto    Producto  @relation(fields: [productoId], references: [id])
+  
+  cantidad    Int
+  precio      Decimal   @db.Decimal(10, 0)
+  descuento   Decimal   @db.Decimal(10, 0) @default(0)
+  exento      Boolean   @default(false)
+  subtotal    Decimal   @db.Decimal(10, 0)
+}
