@@ -5,7 +5,6 @@ generator client {
 
 datasource db {
   provider = "postgresql"
-  url      = env("DATABASE_URL")
 }
 
 model User {
@@ -26,10 +25,14 @@ model User {
   clientes  Cliente[]
   productos Producto[]
   documentos Documento[]  // Facturas y Boletas
+  trabajadores  Trabajador[]
+  categorias  Categoria[]
 
   // Relación Contador
   clientesAsignados ContadorCliente[] @relation("ContadorRelation")
   miContador        ContadorCliente?  @relation("ClienteRelation")
+
+  
 }
 
 enum Role {
@@ -47,6 +50,8 @@ model ContadorCliente {
   clienteId  Int      @unique
   cliente    User     @relation("ClienteRelation", fields: [clienteId], references: [id])
   createdAt  DateTime @default(now())
+  
+
 
   @@unique([contadorId, clienteId])
 }
@@ -96,6 +101,9 @@ model Producto {
   updatedAt   DateTime        @updatedAt
   items       DocumentoItem[]
 
+  categoriaId Int?
+  categoria   Categoria?  @relation(fields: [categoriaId], references: [id])
+
   @@unique([userId, codigo])
 }
 
@@ -127,6 +135,10 @@ model Documento {
   createdAt   DateTime         @default(now())
   updatedAt   DateTime         @updatedAt
   items       DocumentoItem[]
+
+  //Conexion con trabajador
+  trabajadorId Int?
+  trabajador  Trabajador? @relation(fields: [trabajadorId], references: [id])
 
   @@unique([userId, tipo, numero])  // Folio único por tipo
 }
@@ -161,3 +173,33 @@ model DocumentoItem {
   exento      Boolean   @default(false)
   subtotal    Decimal   @db.Decimal(10, 0)
 }
+
+// Trabajador de empresa
+model Trabajador{
+  id          Int       @id @default(autoincrement())
+  userId      Int       
+  user        User      @relation(fields:[userId], references: [id])
+  nombre      String
+  rut         String
+  cargo       String?
+  email       String?
+  activo      Boolean   @default(true)
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+  documentos Documento[]
+
+  @@unique([userId, rut])
+}
+
+//Categoria
+model Categoria{
+  id          Int         @id @default(autoincrement())
+  userId      Int
+  user        User        @relation(fields:[userId], references: [id])
+  nombre      String
+  createdAt   DateTime    @default(now())
+  productos   Producto[]
+
+  @@unique([userId, nombre])
+}
+

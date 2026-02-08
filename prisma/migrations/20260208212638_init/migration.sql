@@ -1,10 +1,6 @@
-/*
-  Warnings:
+-- CreateEnum
+CREATE TYPE "Role" AS ENUM ('ADMIN', 'EMPRESA', 'PERSONAL', 'CONTADOR');
 
-  - The values [USER] on the enum `Role` will be removed. If these variants are still used in the database, this will fail.
-  - Added the required column `rut` to the `User` table without a default value. This is not possible if the table is not empty.
-
-*/
 -- CreateEnum
 CREATE TYPE "TipoCliente" AS ENUM ('PERSONA', 'EMPRESA');
 
@@ -14,23 +10,22 @@ CREATE TYPE "TipoDocumento" AS ENUM ('FACTURA_ELECTRONICA', 'FACTURA_EXENTA', 'B
 -- CreateEnum
 CREATE TYPE "EstadoDocumento" AS ENUM ('BORRADOR', 'EMITIDO', 'ANULADO');
 
--- AlterEnum
-BEGIN;
-CREATE TYPE "Role_new" AS ENUM ('ADMIN', 'EMPRESA', 'PERSONAL', 'CONTADOR');
-ALTER TABLE "User" ALTER COLUMN "role" DROP DEFAULT;
-ALTER TABLE "User" ALTER COLUMN "role" TYPE "Role_new" USING ("role"::text::"Role_new");
-ALTER TYPE "Role" RENAME TO "Role_old";
-ALTER TYPE "Role_new" RENAME TO "Role";
-DROP TYPE "Role_old";
-ALTER TABLE "User" ALTER COLUMN "role" SET DEFAULT 'PERSONAL';
-COMMIT;
+-- CreateTable
+CREATE TABLE "User" (
+    "id" SERIAL NOT NULL,
+    "email" TEXT NOT NULL,
+    "password" TEXT NOT NULL,
+    "name" TEXT,
+    "role" "Role" NOT NULL DEFAULT 'PERSONAL',
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+    "rut" TEXT NOT NULL,
+    "razonSocial" TEXT,
+    "giro" TEXT,
+    "direccion" TEXT,
 
--- AlterTable
-ALTER TABLE "User" ADD COLUMN     "direccion" TEXT,
-ADD COLUMN     "giro" TEXT,
-ADD COLUMN     "razonSocial" TEXT,
-ADD COLUMN     "rut" TEXT NOT NULL,
-ALTER COLUMN "role" SET DEFAULT 'PERSONAL';
+    CONSTRAINT "User_pkey" PRIMARY KEY ("id")
+);
 
 -- CreateTable
 CREATE TABLE "ContadorCliente" (
@@ -72,6 +67,7 @@ CREATE TABLE "Producto" (
     "activo" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "categoriaId" INTEGER,
 
     CONSTRAINT "Producto_pkey" PRIMARY KEY ("id")
 );
@@ -90,6 +86,7 @@ CREATE TABLE "Documento" (
     "estado" "EstadoDocumento" NOT NULL DEFAULT 'EMITIDO',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "trabajadorId" INTEGER,
 
     CONSTRAINT "Documento_pkey" PRIMARY KEY ("id")
 );
@@ -108,6 +105,34 @@ CREATE TABLE "DocumentoItem" (
     CONSTRAINT "DocumentoItem_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "Trabajador" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "nombre" TEXT NOT NULL,
+    "rut" TEXT NOT NULL,
+    "cargo" TEXT,
+    "email" TEXT,
+    "activo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Trabajador_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Categoria" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "nombre" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "Categoria_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateIndex
+CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
+
 -- CreateIndex
 CREATE UNIQUE INDEX "ContadorCliente_clienteId_key" ON "ContadorCliente"("clienteId");
 
@@ -123,6 +148,12 @@ CREATE UNIQUE INDEX "Producto_userId_codigo_key" ON "Producto"("userId", "codigo
 -- CreateIndex
 CREATE UNIQUE INDEX "Documento_userId_tipo_numero_key" ON "Documento"("userId", "tipo", "numero");
 
+-- CreateIndex
+CREATE UNIQUE INDEX "Trabajador_userId_rut_key" ON "Trabajador"("userId", "rut");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Categoria_userId_nombre_key" ON "Categoria"("userId", "nombre");
+
 -- AddForeignKey
 ALTER TABLE "ContadorCliente" ADD CONSTRAINT "ContadorCliente_contadorId_fkey" FOREIGN KEY ("contadorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
@@ -136,13 +167,25 @@ ALTER TABLE "Cliente" ADD CONSTRAINT "Cliente_userId_fkey" FOREIGN KEY ("userId"
 ALTER TABLE "Producto" ADD CONSTRAINT "Producto_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Producto" ADD CONSTRAINT "Producto_categoriaId_fkey" FOREIGN KEY ("categoriaId") REFERENCES "Categoria"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "Documento" ADD CONSTRAINT "Documento_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Documento" ADD CONSTRAINT "Documento_clienteId_fkey" FOREIGN KEY ("clienteId") REFERENCES "Cliente"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
+ALTER TABLE "Documento" ADD CONSTRAINT "Documento_trabajadorId_fkey" FOREIGN KEY ("trabajadorId") REFERENCES "Trabajador"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
 ALTER TABLE "DocumentoItem" ADD CONSTRAINT "DocumentoItem_documentoId_fkey" FOREIGN KEY ("documentoId") REFERENCES "Documento"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "DocumentoItem" ADD CONSTRAINT "DocumentoItem_productoId_fkey" FOREIGN KEY ("productoId") REFERENCES "Producto"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Trabajador" ADD CONSTRAINT "Trabajador_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Categoria" ADD CONSTRAINT "Categoria_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
