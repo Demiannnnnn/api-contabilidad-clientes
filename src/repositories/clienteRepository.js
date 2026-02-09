@@ -1,7 +1,4 @@
 const {PrismaClient} = require('@prisma/client');
-const { useImperativeHandle } = require('react');
-const { email, includes } = require('zod');
-const { da, no } = require('zod/locales');
 const prisma = new PrismaClient();
 
 class ClienteRepository {
