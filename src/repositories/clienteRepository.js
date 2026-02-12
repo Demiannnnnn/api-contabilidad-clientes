@@ -22,7 +22,7 @@ class ClienteRepository {
 
         });
     }
-    async findAll(userId) {
+    async findAll() {
         return await prisma.cliente.findMany({
             where: {userId},
             orderBy: {createdAt: 'desc'},
@@ -43,7 +43,7 @@ class ClienteRepository {
             }
         });
     }
-    async findByRut(userId, rut) {
+    async findbyRut(userId, rut) {
         return await prisma.cliente.findFirst({
             where: {
                 userId,
@@ -89,5 +89,3 @@ class ClienteRepository {
     }
     
 }
-
-module.exports = ClienteRepository;
