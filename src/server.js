@@ -16,7 +16,7 @@ server.use(express.urlencoded({ extended: true }));
 const authRoutes = require ('./routes/authRoutes');
 const clienteRoutes =  require ('./routes/clienteRoutes');
 const productoRoutes =  require ('./routes/productoRoutes');
-const facturaRoutes = require ('./routes/facturaRoutes');
+const documentoRoutes = require ('./routes/documentoRoutes');
 const licenceRoutes =  require ('./routes/licenceRoutes');
 const updateRoutes =  require ('./routes/updateRoutes');
 
@@ -24,7 +24,7 @@ const updateRoutes =  require ('./routes/updateRoutes');
 server.use('/api/auth', authRoutes);
 server.use('/api', clienteRoutes);
 server.use('/api', productoRoutes);
-server.use('/api', facturaRoutes);
+server.use('/api', documentoRoutes);
 server.use('/api', licenceRoutes);
 server.use('/api', updateRoutes);
 
