@@ -1,6 +1,6 @@
 const express = require('express');
 const server = express();
-require ('dotenv').config();
+require('dotenv').config();
 
 
 const PORT = process.env.PORT || 3000;
@@ -13,12 +13,12 @@ server.use(express.urlencoded({ extended: true }));
 
 
 //importar rutas
-const authRoutes = require ('./routes/authRoutes');
-const clienteRoutes =  require ('./routes/clienteRoutes');
-const productoRoutes =  require ('./routes/productoRoutes');
-const documentoRoutes = require ('./routes/documentRoutes');
-const licenceRoutes =  require ('./routes/licenceRoutes');
-const updateRoutes =  require ('./routes/updateRoutes');
+const authRoutes = require('./routes/authRoutes');
+const clienteRoutes = require('./routes/clienteRoutes');
+const productoRoutes = require('./routes/productoRoutes');
+const documentoRoutes = require('./routes/documentoRoutes');
+const licenceRoutes = require('./routes/licenceRoutes');
+const updateRoutes = require('./routes/updateRoutes');
 
 //Usar rutas
 server.use('/api/auth', authRoutes);

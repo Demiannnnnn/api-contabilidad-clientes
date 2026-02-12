@@ -1,41 +1,31 @@
-const {PrismaClient} = require('@prisma/client');
-const { AnyNullClass } = require('@prisma/client/runtime/client');
-const { includes } = require('zod');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
 
-class userRepository {
+class UserRepository {
     async createUser(data) {
         return await prisma.user.create({
             data: {
                 email: data.email,
                 password: data.password,
                 name: data.name,
-
             },
-            includes: {
-                cliente: true,
-            }
         });
     }
     async findByEmail(email) {
         return await prisma.user.findUnique({
-            where: {email},
-            include: {
-                cliente: true,
-            }
+            where: { email },
         });
     }
-           
-    
+
+
     async delete(id) {
         return await prisma.user.delete({
-            where: {id},
+            where: { id },
         });
     }
 
     async update(id, data) {
         return await prisma.user.update({
-            where: {id},
+            where: { id },
             data: {
                 email: data.email,
                 password: data.password,
@@ -45,7 +35,7 @@ class userRepository {
     }
     async findAll() {
         return await prisma.user.findMany({
-            orderBy: {createdAt: 'desc'},
+            orderBy: { createdAt: 'desc' },
             include: {
                 cliente: true,
             }
@@ -53,4 +43,4 @@ class userRepository {
     }
 }
 
-module.exports = userRepository;
+module.exports = new UserRepository();

@@ -1,7 +1,7 @@
-const ClienteRepository = require('../repositories/clienteRepository');
-const { validate, schemas } = require('./validationService');
+const clienteRepository = require('../repositories/clienteRepository');
+const { validate, schemas } = require('./validationService.js');
 
-const clienteRepo = new ClienteRepository();
+const clienteRepo = new clienteRepository();
 
 class ClienteService {
 

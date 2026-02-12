@@ -1,6 +1,5 @@
-const {PrismaClient} = require('@prisma/client');
+const prisma = require('../config/database');
 const { includes } = require('zod');
-const prisma = new PrismaClient();
 
 class DocumentoRepository {
     async createDocumento(data) {

@@ -23,7 +23,9 @@
   },
   "homepage": "https://github.com/Demiannnnnn/Server-Sistema-Contabiliadad-Clientes#readme",
   "dependencies": {
-    "@prisma/client": "^7.3.0",
+    "@prisma/client": "^5.22.0",
+    "axios": "^1.13.5",
+    "bcryptjs": "^3.0.3",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "dotenv": "^17.2.3",
@@ -31,8 +33,9 @@
     "express-rate-limit": "^8.2.1",
     "fast-xml-parser": "^5.3.3",
     "helmet": "^8.1.0",
+    "jsonwebtoken": "^9.0.3",
     "morgan": "^1.10.1",
-    "prisma": "^7.3.0",
+    "prisma": "^5.22.0",
     "zod": "^4.3.6"
   },
   "devDependencies": {

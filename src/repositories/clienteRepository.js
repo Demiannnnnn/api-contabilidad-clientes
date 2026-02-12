@@ -1,5 +1,4 @@
-const {PrismaClient} = require('@prisma/client');
-const prisma = new PrismaClient();
+const prisma = require('../config/database');
 
 class ClienteRepository {
     // crear nuevo cliente
@@ -15,7 +14,7 @@ class ClienteRepository {
                 giro: data.giro,
             },
 
-            include: { 
+            include: {
                 user: true,
                 documentos: true
             },
@@ -24,8 +23,8 @@ class ClienteRepository {
     }
     async findAll() {
         return await prisma.cliente.findMany({
-            where: {userId},
-            orderBy: {createdAt: 'desc'},
+            where: { userId },
+            orderBy: { createdAt: 'desc' },
             include: {
                 documentos: true,
             }
@@ -33,11 +32,11 @@ class ClienteRepository {
     }
     async findById(id) {
         return await prisma.cliente.findUnique({
-            where: {id},
+            where: { id },
             include: {
                 user: true,
                 documentos: {
-                    orderBy: {createdAt: 'desc'},
+                    orderBy: { createdAt: 'desc' },
                     take: 10
                 }
             }
@@ -53,7 +52,7 @@ class ClienteRepository {
     }
     async update(id, data) {
         return await prisma.cliente.update({
-            where: {id},
+            where: { id },
             data: {
                 rut: data.rut,
                 nombre: data.nombre,
@@ -67,7 +66,7 @@ class ClienteRepository {
     }
     async delete(id) {
         return await prisma.cliente.delete({
-            where: {id}
+            where: { id }
         });
     }
     async search(userId, searchTerm) {
@@ -75,17 +74,19 @@ class ClienteRepository {
             where: {
                 userId,
                 OR: [
-                    {nombre: {contains: searchTerm, mode: 'insensitive'}},
-                    {rut: {contains: searchTerm, mode: 'insensitive'}},
-                    {email: {contains: searchTerm, mode: 'insensitive'}},
+                    { nombre: { contains: searchTerm, mode: 'insensitive' } },
+                    { rut: { contains: searchTerm, mode: 'insensitive' } },
+                    { email: { contains: searchTerm, mode: 'insensitive' } },
                 ]
             }
         });
     }
     async countClientes(userId) {
         return await prisma.cliente.count({
-            where: {userId}
+            where: { userId }
         });
     }
-    
+
 }
+
+module.exports = ClienteRepository;
