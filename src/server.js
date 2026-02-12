@@ -16,7 +16,7 @@ server.use(express.urlencoded({ extended: true }));
 const authRoutes = require ('./routes/authRoutes');
 const clienteRoutes =  require ('./routes/clienteRoutes');
 const productoRoutes =  require ('./routes/productoRoutes');
-const documentoRoutes = require ('./routes/documentoRoutes');
+const documentoRoutes = require ('./routes/documentRoutes');
 const licenceRoutes =  require ('./routes/licenceRoutes');
 const updateRoutes =  require ('./routes/updateRoutes');
 

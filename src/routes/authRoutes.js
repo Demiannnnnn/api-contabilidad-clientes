@@ -13,7 +13,6 @@ router.post('/login', validateLogin, authController.login);
 // Ruta para el cambio de contraseña
 router.post('/change-password', authMiddleware, validateChangePassword, authController.changePassword);
 
-// Ruta para obtener el perfil del usuario autenticado
 router.get('/me', authMiddleware, authController.getProfile);
 
 module.exports = router;

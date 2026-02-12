@@ -1,9 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const clienteController = require('../controllers/clienteController');
-const authMiddleware = require('../middleware/authRequest');
 
-router.use(authMiddleware); // Protege todas las rutas de cliente con autenticación
 
 
 ///Rutas especificas
