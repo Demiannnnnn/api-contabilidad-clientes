@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const documentoController = require('../controllers/documentoController');
+const authMiddleware = require('../middleware/auth');
 
+// Aplicar middleware de autenticación a todas las rutas de documentos
+router.use(authMiddleware);
 ///Rutas especificas
 
 // Cliente obtiene backup de todas las documentos

@@ -1,0 +1,1 @@
+cliente se registra, se guarda en db, se crea un estao default como inactiva la licencia, cliente paga, yo como admin cambio el estado a activa y entrego su licencia cuando la app la solicite.

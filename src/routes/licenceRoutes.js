@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const licenceController = require('../controllers/licenceController');
+const authMiddleware = require('../middleware/auth');
 
+// Aplicar middleware de autenticación a todas las rutas de licencias
+router.use(authMiddleware);
 
 ///Rutas especificas
 

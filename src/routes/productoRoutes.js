@@ -1,7 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const productoController = require('../controllers/productoController');
+const authMiddleware = require('../middleware/auth');
 
+// Aplicar middleware de autenticación a todas las rutas de productos
+router.use(authMiddleware);
 
 ///Rutas especificas
 // Cliente obtiene backup de todos los productos
