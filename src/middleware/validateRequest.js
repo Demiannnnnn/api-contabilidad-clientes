@@ -3,9 +3,6 @@ const validateRegister = (req, res, next) => {
   if (!req.body.username || !req.body.password) {
     return res.status(400).json({ error: 'Faltan campos obligatorios' });
   }
-  else{
-    return res.status(400).json({ error: 'a' });
-  }
   next();
 }
 
