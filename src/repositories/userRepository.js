@@ -7,6 +7,7 @@ class UserRepository {
                 email: data.email,
                 password: data.password,
                 name: data.name,
+                rut: data.rut
             },
         });
     }

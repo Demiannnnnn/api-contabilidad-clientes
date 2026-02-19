@@ -1,3 +1,4 @@
+require('dotenv').config();
 const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const userRepository = require('../repositories/userRepository');
@@ -5,7 +6,7 @@ const prisma = require('../config/database');
 
 const register = async (req, res) => {
     try {
-        const { email, password, name } = req.body;
+        const { email, password, name, rut, razonSocial, giro, direccion } = req.body;
 
         const existingUser = await userRepository.findByEmail(email);
         if (existingUser) {
@@ -16,7 +17,11 @@ const register = async (req, res) => {
         const user = await userRepository.createUser({
             email,
             password: hashedPassword,
-            name
+            name,
+            rut,
+            razonSocial,
+            giro,
+            direccion
         });
 
         const token = jwt.sign(

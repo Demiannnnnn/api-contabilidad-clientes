@@ -1,14 +1,14 @@
-const validateRegister = (req, res, next) => {
 
-  if (!req.body.username || !req.body.password) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+const validateRegister = (req, res, next) => {
+  if (!req.body.email || !req.body.password || !req.body.rut) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios: email, password y rut' });
   }
   next();
 }
 
 const validateLogin = (req, res, next) => {
-  if (!req.body.username || !req.body.password) {
-    return res.status(400).json({ error: 'Faltan campos obligatorios' });
+  if (!req.body.email || !req.body.password) {
+    return res.status(400).json({ error: 'Faltan campos obligatorios: email y password' });
   }
   next();
 }
