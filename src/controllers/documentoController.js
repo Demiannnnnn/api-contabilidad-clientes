@@ -1,8 +1,14 @@
-const getFacturasBackup = (req, res) => {
-    // Lógica para obtener el backup de todas las documentos
-    res.json({ message: 'Backup de documentos obtenido' });
-}
+const documentoService = require('../services/documentoService');
 
+const getFacturasBackup = (req, res) => {
+  try{
+    const {documentoId} = req.body;
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ success: false, error: error.message || 'Error al obtener backup de facturas' });
+
+}
+}
 const syncFacturas = (req, res) => {
     // Lógica para sincronizar documentos locales
     res.json({ message: 'Facturas sincronizadas' });

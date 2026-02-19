@@ -1,6 +1,7 @@
+
+
 const getProductosBackup = (req, res) => {
-    // Lógica para obtener el backup de todos los productos
-    res.json({ message: 'Backup de productos obtenido' });
+    
 }
 
 const syncProductos = (req, res) => {
