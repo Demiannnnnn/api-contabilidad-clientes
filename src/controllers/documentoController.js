@@ -19,19 +19,42 @@ const getAllFacturas = (req, res) => {
     res.json({ message: 'Lista de todas las documentos' });
 }
 
-const createFactura = (req, res) => {
-    // Lógica para crear una nueva documento
-    res.json({ message: 'Factura creada' });
+const createFactura = async(req, res) => {
+    try{
+        const { userId, clienteId, productos, total, fecha } = req.body;
+        // Validación básica
+        if (!userId || !clienteId || !productos || !total) {
+            return res.status(400).json({ success: false, error: 'Faltan campos obligatorios' });
+        }
+        const facturaCreada = await documentoService.createFactura(userId, clienteId, productos, total, fecha);
+        res.status(201).json({ success: true, message: 'Factura creada exitosamente', factura: facturaCreada });
+    }catch(error){
+        const status = error.status || 500;
+        res.status(status).json({ success: false, error: error.message || 'Error al crear factura' });
+    }
 }
 
-const updateFactura = (req, res) => {
-    // Lógica para actualizar una documento existente
-    res.json({ message: `Factura con ID ${req.params.id} actualizada` });
+const updateFactura = async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { userId, clienteId, productos, total, fecha } = req.body;
+        const facturaActualizada = await documentoService.updateFactura(id, userId, clienteId, productos, total, fecha);
+        res.json({ success: true, message: 'Factura actualizada exitosamente', factura: facturaActualizada });
+    } catch (error) {
+        const status = error.status || 500;
+        res.status(status).json({ success: false, error: error.message || 'Error al actualizar factura' });
+    }
 }
 
-const deleteFactura = (req, res) => {
-    // Lógica para eliminar una documento por ID
-    res.json({ message: `Factura con ID ${req.params.id} eliminada` });
+const deleteFactura = async (req, res) => {
+    try {
+        const { id } = req.params;
+        await documentoService.deleteFactura(id);
+        res.json({ success: true, message: `Factura con ID ${id} eliminada` });
+    } catch (error) {
+        const status = error.status || 500;
+        res.status(status).json({ success: false, error: error.message || 'Error al eliminar factura' });
+    }
 }
 
 module.exports = {
