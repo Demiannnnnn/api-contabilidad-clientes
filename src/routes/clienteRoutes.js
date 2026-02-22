@@ -27,6 +27,8 @@ router.post('/clientes', clienteController.createCliente);
 
 ///Recurso individual
 
+//Cliente obtiene un cliente por ID
+router.get('/clientes/:id', clienteController.getClienteById);
 // Cliente actualiza un cliente existente
 router.put('/clientes/:id', clienteController.updateCliente);
 

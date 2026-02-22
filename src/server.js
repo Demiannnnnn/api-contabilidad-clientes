@@ -6,7 +6,14 @@ require('dotenv').config();
 const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
 
-//middlewares globables
+
+// Middleware para loguear cada request
+server.use((req, res, next) => {
+  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  next();
+});
+
+//middlewares globales
 server.use(express.json());
 server.use(express.urlencoded({ extended: true }));
 

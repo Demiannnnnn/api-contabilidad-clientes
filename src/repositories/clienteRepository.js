@@ -21,7 +21,7 @@ class ClienteRepository {
 
         });
     }
-    async findAll() {
+    async findAll(userId) {
         return await prisma.cliente.findMany({
             where: { userId },
             orderBy: { createdAt: 'desc' },

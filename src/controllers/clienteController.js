@@ -60,8 +60,9 @@ const getAllClientes = async (req, res) => {
 const createCliente = async (req, res) => {
     try {
         const userId = req.user.id;
-        const cliente = await clienteService.crear(userId, req.body);
-        res.status(201).json({ success: true, data: cliente });
+        const { rut, nombre, email, telefono, direccion, giro } = req.body;
+        const clienteCreado = await clienteService.crear(userId, { rut, nombre, email, telefono, direccion, giro });
+        res.status(201).json({ success: true, message: 'Cliente creado exitosamente', data: clienteCreado });
     } catch (error) {
         const status = error.status || 500;
         res.status(status).json({ success: false, error: error.message || 'Error al crear cliente' });
@@ -102,11 +103,32 @@ const deleteCliente = async (req, res) => {
     }
 };
 
+const getClienteById = async (req, res) => {
+    try{
+        const userId = req.user.id;
+        const id = parseInt(req.params.id);
+        
+        if (isNaN(id)) {
+            return res.status(400).json({ success: false, error: 'ID de cliente inválido' });
+        }
+        const cliente = await clienteService.obtenerPorId(userId, id);
+        if(!cliente){
+            return res.status(404).json({ success: false, error: 'Cliente no encontrado' });
+        }
+        res.json({ success: true, data: cliente });
+    }catch(error){
+        const status = error.status || 500;
+        res.status(status).json({ success: false, error: error.message || 'Error al obtener cliente por ID' });
+    }
+}
+
 module.exports = {
     getClientesBackup,
     syncClientes,
     getAllClientes,
     createCliente,
     updateCliente,
-    deleteCliente
+    deleteCliente,
+    getClienteById
+    
 };
