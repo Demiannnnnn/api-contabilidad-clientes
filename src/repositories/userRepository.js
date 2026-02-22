@@ -11,6 +11,19 @@ class UserRepository {
             },
         });
     }
+    async updatePassword(id, hashedPassword) {
+        return await prisma.user.update({
+            where: { id },
+            data: {
+                password: hashedPassword,
+            },
+        });
+    }
+    async findById(id) {
+        return await prisma.user.findUnique({
+            where: { id },
+        });
+    }
     async findByEmail(email) {
         return await prisma.user.findUnique({
             where: { email },

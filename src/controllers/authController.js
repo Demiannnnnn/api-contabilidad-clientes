@@ -85,9 +85,23 @@ const login = async (req, res) => {
     }
 };
 
-const changePassword = (req, res) => {
-    // Lógica para cambiar la contraseña de un usuario
-    res.json({ message: 'Contraseña cambiada exitosamente' });
+const changePassword = async (req, res) => {
+    const { oldPassword, newPassword } = req.body;
+    
+    const user = await userRepository.findById(req.user.id);
+    if (!user) {
+        return res.status(404).json({ success: false, error: 'Usuario no encontrado' });
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+        return res.status(400).json({ success: false, error: 'Contraseña antigua incorrecta' });
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+    await userRepository.updatePassword(user.id, hashedNewPassword);
+
+    res.json({ success: true, message: 'Contraseña cambiada exitosamente' });
 }
 
 const getProfile = (req, res) => {
