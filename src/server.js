@@ -7,9 +7,19 @@ const PORT = process.env.PORT || 3000;
 const HOST = process.env.HOST || 'localhost';
 
 
-// Middleware para loguear cada request
+// Middleware de logging detallado
 server.use((req, res, next) => {
-  console.log(`[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+  const start = process.hrtime();
+  res.on('finish', () => {
+    const duration = process.hrtime(start);
+    const ms = (duration[0] * 1e3 + duration[1] / 1e6).toFixed(2);
+    console.log(`---\n[${new Date().toISOString()}] ${req.method} ${req.originalUrl}`);
+    console.log('Query:', req.query);
+    console.log('Body:', req.body);
+    console.log('Status:', res.statusCode);
+    console.log('Tiempo de respuesta:', ms + 'ms');
+    console.log('---');
+  });
   next();
 });
 
