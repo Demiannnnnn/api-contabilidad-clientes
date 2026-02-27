@@ -1,0 +1,18 @@
+{
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/package-lock.json": true,
+        "**/.env": true,
+        "**/package.json": true,
+        "**/prisma.config.ts.bak": true,
+        "**/.gitignore": true,
+        "**/generated": true,
+        
+        
+
+        
+    
+    }
+
+}

@@ -42,7 +42,7 @@ class ClienteRepository {
             }
         });
     }
-    async findbyRut(userId, rut) {
+    async findByRut(userId, rut) {
         return await prisma.cliente.findFirst({
             where: {
                 userId,

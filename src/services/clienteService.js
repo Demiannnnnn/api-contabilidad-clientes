@@ -1,27 +1,39 @@
+
 const clienteRepository = require('../repositories/clienteRepository');
-const { validate, schemas } = require('./validationService.js');
+const { validate, schemas } = require('./validationService');
+const logger = require('../utils/logger');
 
 const clienteRepo = new clienteRepository();
 
 class ClienteService {
 
     async crear(userId, data) {
-        // Validar datos de entrada
-        const validated = validate(schemas.cliente, data);
+        try {
+            logger.info(`[ClienteService.crear] userId: ${userId}`);
+            logger.info(`[ClienteService.crear] data: ${JSON.stringify(data)}`);
+            logger.debug(`[ClienteService.crear] schemas.cliente:`, schemas.cliente);
+            // Validar datos de entrada
+            const validated = validate(schemas.cliente, data);
 
-        // Si es tipo EMPRESA, requiere RUT y giro
-        if (validated.tipo === 'EMPRESA') {
-            if (!validated.rut) throw { status: 400, message: 'Cliente empresa requiere RUT' };
-            if (!validated.giro) throw { status: 400, message: 'Cliente empresa requiere giro' };
+            // Si es tipo EMPRESA, requiere RUT y giro
+            if (validated.tipo === 'EMPRESA') {
+                if (!validated.rut) throw { status: 400, message: 'Cliente empresa requiere RUT' };
+                if (!validated.giro) throw { status: 400, message: 'Cliente empresa requiere giro' };
+            }
+
+            // Verificar que no exista otro cliente con el mismo RUT para este user
+            if (validated.rut) {
+                const existente = await clienteRepo.findByRut(userId, validated.rut);
+                if (existente) throw { status: 409, message: 'Ya existe un cliente con ese RUT' };
+            }
+
+            const result = await clienteRepo.createCliente({ userId, ...validated });
+            logger.info('[ClienteService.crear] Cliente creado:', result);
+            return result;
+        } catch (error) {
+            logger.error('[ClienteService.crear] Error:', error);
+            throw error;
         }
-
-        // Verificar que no exista otro cliente con el mismo RUT para este user
-        if (validated.rut) {
-            const existente = await clienteRepo.findByRut(userId, validated.rut);
-            if (existente) throw { status: 409, message: 'Ya existe un cliente con ese RUT' };
-        }
-
-        return await clienteRepo.createCliente({ userId, ...validated });
     }
 
     async obtenerTodos(userId) {
