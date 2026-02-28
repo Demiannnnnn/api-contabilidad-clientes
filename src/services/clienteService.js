@@ -31,7 +31,7 @@ class ClienteService {
             logger.info('[ClienteService.crear] Cliente creado:', result);
             return result;
         } catch (error) {
-            logger.error('[ClienteService.crear] Error:', error);
+            logger.error('[ClienteService.crear] Error:', error && error.stack ? error.stack : error);
             throw error;
         }
     }

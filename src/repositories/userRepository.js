@@ -4,7 +4,7 @@ class UserRepository {
     async createUser(data) {
         return await prisma.user.create({
             data: {
-                email: data.email,
+                email: data.email.trim().toLowerCase(),
                 password: data.password,
                 name: data.name,
                 rut: data.rut
@@ -27,6 +27,17 @@ class UserRepository {
     async findByEmail(email) {
         return await prisma.user.findUnique({
             where: { email },
+        });
+    }
+
+    async findByEmailOrName(identifier) {
+        return await prisma.user.findFirst({
+            where: {
+                OR: [
+                    { email: { equals: identifier, mode: 'insensitive' } },
+                    { name: { equals: identifier, mode: 'insensitive' } }
+                ]
+            }
         });
     }
 

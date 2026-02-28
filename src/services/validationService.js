@@ -111,12 +111,13 @@ function validate(schema, data) {
     const result = schema.safeParse(data);
     console.log('[validate] result:', result);
     if (!result.success) {
-        if (!result.error || !result.error.errors) {
-            console.error('[validate] result.error o result.error.errors es undefined:', result.error);
-            throw { status: 500, error: 'Error interno en validación: result.error.errors es undefined' };
+        // Zod returns errors in `error.issues` (array). Normalize for our API.
+        if (!result.error || !result.error.issues) {
+            console.error('[validate] result.error o result.error.issues es undefined:', result.error);
+            throw { status: 500, error: 'Error interno en validación: result.error.issues es undefined' };
         }
-        const errors = result.error.errors.map(e => ({
-            campo: e.path.join('.'),
+        const errors = result.error.issues.map(e => ({
+            campo: Array.isArray(e.path) ? e.path.join('.') : String(e.path),
             mensaje: e.message,
         }));
         throw { status: 400, errors };

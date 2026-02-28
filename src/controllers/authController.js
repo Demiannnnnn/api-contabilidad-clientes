@@ -7,14 +7,16 @@ const register = async (req, res) => {
     try {
         const { email, password, name, rut, razonSocial, giro, direccion } = req.body;
 
-        const existingUser = await userRepository.findByEmail(email);
+        const normalizedEmail = email ? email.trim().toLowerCase() : '';
+
+        const existingUser = await userRepository.findByEmail(normalizedEmail);
         if (existingUser) {
             return res.status(400).json({ error: 'El email ya está registrado' });
         }
 
         const hashedPassword = await bcrypt.hash(password, 10);
         const user = await userRepository.createUser({
-            email,
+            email: normalizedEmail,
             password: hashedPassword,
             name,
             rut,
@@ -23,16 +25,10 @@ const register = async (req, res) => {
             direccion
         });
 
-        const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
+        // On registration we create the user but do not issue an auth token.
         res.status(201).json({
             success: true,
             data: {
-                token,
                 user: {
                     id: user.id,
                     email: user.email,
@@ -51,7 +47,10 @@ const login = async (req, res) => {
     try {
         const { email, password } = req.body;
 
-        const user = await userRepository.findByEmail(email);
+        const identifier = email ? email.trim() : '';
+
+        // `identifier` may be an email or a username. Use case-insensitive search.
+        const user = await userRepository.findByEmailOrName(identifier);
         if (!user) {
             return res.status(401).json({ error: 'Credenciales inválidas' });
         }

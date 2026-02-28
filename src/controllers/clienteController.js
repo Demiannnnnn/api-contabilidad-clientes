@@ -60,8 +60,12 @@ const getAllClientes = async (req, res) => {
 const createCliente = async (req, res) => {
     try {
         const userId = req.user.id;
-        const { rut, nombre, email, telefono, direccion, giro } = req.body;
-        const clienteCreado = await clienteService.crear(userId, { rut, nombre, email, telefono, direccion, giro });
+        // Allow clients to send different name fields (razonSocial, nombreFantasia).
+        const payload = { ...req.body };
+        if (!payload.nombre) {
+            payload.nombre = payload.razonSocial || payload.nombreFantasia || '';
+        }
+        const clienteCreado = await clienteService.crear(userId, payload);
         res.status(201).json({ success: true, message: 'Cliente creado exitosamente', data: clienteCreado });
     } catch (error) {
         const status = error.status || 500;
