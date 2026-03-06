@@ -8,6 +8,12 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+generator erd {
+  provider = "prisma-erd-generator"
+  output   = "../docs/erd.svg"
+}
+
+
 
 model User {
   id        Int      @id @default(autoincrement())
@@ -68,12 +74,29 @@ model Cliente {
   user      User          @relation(fields: [userId], references: [id])
   
   // Datos del cliente
-  rut       String?       // Opcional para boletas
-  nombre    String
-  email     String?
-  telefono  String?
-  direccion String?
-  giro      String?       // Para facturas
+  rut                 String?       // Opcional para boletas
+  nombre              String
+  email               String?
+  telefono            String?
+  direccion           String?
+  giro                String?       // Para facturas
+  razon_social        String?
+  nombre_fantasia     String?
+  region              String?
+  comuna              String?
+  ciudad              String?
+  
+  // Contacto cliente
+  nombre_contacto     String?
+  email_contacto      String?
+
+
+  // Pago
+  condicion_pago      Boolean?
+  dias_credito        Int
+  limite_credito      Int
+  desc_auto           Decimal
+  
   
   // Tipo de cliente
   tipo      TipoCliente   @default(PERSONA)

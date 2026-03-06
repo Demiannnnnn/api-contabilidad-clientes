@@ -1,138 +1,87 @@
-const clienteService = require('../services/clienteService.js');
-
-const getClientesBackup = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const clientes = await clienteService.obtenerTodos(userId);
-        res.json({ success: true, data: clientes, total: clientes.length });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al obtener backup de clientes' });
-    }
-};
-
-const syncClientes = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const { clientes } = req.body;
-
-        if (!Array.isArray(clientes)) {
-            return res.status(400).json({ success: false, error: 'Se esperaba un array de clientes' });
-        }
-
-        const resultados = { creados: 0, actualizados: 0, errores: [] };
-
-        for (const clienteData of clientes) {
-            try {
-                if (clienteData.id) {
-                    await clienteService.actualizar(userId, clienteData.id, clienteData);
-                    resultados.actualizados++;
-                } else {
-                    await clienteService.crear(userId, clienteData);
-                    resultados.creados++;
-                }
-            } catch (err) {
-                resultados.errores.push({
-                    cliente: clienteData.nombre || clienteData.rut || 'desconocido',
-                    error: err.message
-                });
-            }
-        }
-
-        res.json({ success: true, data: resultados });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al sincronizar clientes' });
-    }
-};
+const clienteService = require('../services/clienteService');
 
 const getAllClientes = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const clientes = await clienteService.obtenerTodos(userId);
-        res.json({ success: true, data: clientes });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al obtener clientes' });
-    }
-};
-
-const createCliente = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        // Allow clients to send different name fields (razonSocial, nombreFantasia).
-        const payload = { ...req.body };
-        if (!payload.nombre) {
-            payload.nombre = payload.razonSocial || payload.nombreFantasia || '';
-        }
-        const clienteCreado = await clienteService.crear(userId, payload);
-        res.status(201).json({ success: true, message: 'Cliente creado exitosamente', data: clienteCreado });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al crear cliente' });
-    }
-};
-
-const updateCliente = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const id = parseInt(req.params.id);
-
-        if (isNaN(id)) {
-            return res.status(400).json({ success: false, error: 'ID de cliente inválido' });
-        }
-
-        const cliente = await clienteService.actualizar(userId, id, req.body);
-        res.json({ success: true, data: cliente });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al actualizar cliente' });
-    }
-};
-
-const deleteCliente = async (req, res) => {
-    try {
-        const userId = req.user.id;
-        const id = parseInt(req.params.id);
-
-        if (isNaN(id)) {
-            return res.status(400).json({ success: false, error: 'ID de cliente inválido' });
-        }
-
-        await clienteService.eliminar(userId, id);
-        res.json({ success: true, message: 'Cliente eliminado correctamente' });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al eliminar cliente' });
-    }
+  try {
+    const result = await clienteService.listClientes(req.tenantId, req.query);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
 };
 
 const getClienteById = async (req, res) => {
-    try{
-        const userId = req.user.id;
-        const id = parseInt(req.params.id);
-        
-        if (isNaN(id)) {
-            return res.status(400).json({ success: false, error: 'ID de cliente inválido' });
-        }
-        const cliente = await clienteService.obtenerPorId(userId, id);
-        if(!cliente){
-            return res.status(404).json({ success: false, error: 'Cliente no encontrado' });
-        }
-        res.json({ success: true, data: cliente });
-    }catch(error){
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al obtener cliente por ID' });
-    }
-}
-
-module.exports = {
-    getClientesBackup,
-    syncClientes,
-    getAllClientes,
-    createCliente,
-    updateCliente,
-    deleteCliente,
-    getClienteById
-    
+  try {
+    const cliente = await clienteService.getCliente(req.tenantId, req.params.id);
+    res.json({ success: true, data: cliente });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
 };
+
+const searchClientes = async (req, res) => {
+  try {
+    const clientes = await clienteService.searchClientes(req.tenantId, req.query.q);
+    res.json({ success: true, data: clientes });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
+
+const createCliente = async (req, res) => {
+  try {
+    const cliente = await clienteService.createCliente(req.tenantId, req.body);
+    res.status(201).json({ success: true, data: cliente });
+  } catch (error) {
+    const status = error.status || 500;
+    const response = { success: false };
+    if (error.errors) { response.errors = error.errors; response.error = 'Error de validación'; }
+    else { response.error = error.message; }
+    res.status(status).json(response);
+  }
+};
+
+const updateCliente = async (req, res) => {
+  try {
+    const cliente = await clienteService.updateCliente(req.tenantId, req.params.id, req.body);
+    res.json({ success: true, data: cliente });
+  } catch (error) {
+    const status = error.status || 500;
+    const response = { success: false };
+    if (error.errors) { response.errors = error.errors; response.error = 'Error de validación'; }
+    else { response.error = error.message; }
+    res.status(status).json(response);
+  }
+};
+
+const deleteCliente = async (req, res) => {
+  try {
+    await clienteService.deleteCliente(req.tenantId, req.params.id);
+    res.json({ success: true, message: 'Cliente eliminado' });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
+
+const getEstadoCuenta = async (req, res) => {
+  try {
+    const data = await clienteService.getEstadoCuenta(req.tenantId, req.params.id);
+    res.json({ success: true, data });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
+
+const syncClientes = async (req, res) => {
+  try {
+    const { clientes } = req.body;
+    if (!Array.isArray(clientes)) {
+      return res.status(400).json({ success: false, error: 'Se esperaba un array de clientes' });
+    }
+    const result = await clienteService.syncClientes(req.tenantId, clientes);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
+
+module.exports = { getAllClientes, getClienteById, searchClientes, createCliente, updateCliente, deleteCliente, getEstadoCuenta, syncClientes };

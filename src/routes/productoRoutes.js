@@ -1,31 +1,18 @@
 const express = require('express');
 const router = express.Router();
 const productoController = require('../controllers/productoController');
-const authMiddleware = require('../middleware/auth');
+const { authenticate, requireRole, tenantScope } = require('../middleware/authMiddleware');
 
-// Aplicar middleware de autenticación a todas las rutas de productos
-router.use(authMiddleware);
+router.use(authenticate, tenantScope);
 
-///Rutas especificas
-// Cliente obtiene backup de todos los productos
-router.get('/productos/backup/all', productoController.getProductosBackup);
+router.get('/search', requireRole('dueño', 'admin', 'vendedor', 'contador'), productoController.searchProductos);
+router.post('/sync', requireRole('dueño', 'admin'), productoController.syncProductos);
 
-// Cliente sincroniza sus productos locales
-router.post('/productos/sync', productoController.syncProductos);
-
-///Coleccion Productos
-//Cliente obtiene todos los productos
-router.get('/productos', productoController.getAllProductos);
-
-//Cliente crea un nuevo producto
-router.post('/productos', productoController.createProducto);
-
-///Recurso individual
-// Cliente actualiza un producto existente
-router.put('/productos/:id', productoController.updateProducto);
-
-//Cliente elimina un producto por ID
-router.delete('/productos/:id', productoController.deleteProducto);
-
+router.get('/', requireRole('dueño', 'admin', 'vendedor', 'contador'), productoController.getAllProductos);
+router.get('/:id', requireRole('dueño', 'admin', 'vendedor', 'contador'), productoController.getProductoById);
+router.post('/', requireRole('dueño', 'admin'), productoController.createProducto);
+router.put('/:id', requireRole('dueño', 'admin'), productoController.updateProducto);
+router.patch('/:id/stock', requireRole('dueño', 'admin', 'vendedor'), productoController.updateStock);
+router.delete('/:id', requireRole('dueño', 'admin'), productoController.deleteProducto);
 
 module.exports = router;

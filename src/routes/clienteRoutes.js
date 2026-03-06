@@ -1,42 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const clienteController = require('../controllers/clienteController');
-const authMiddleware = require('../middleware/auth');
+const { authenticate, tenantScope } = require('../middleware/authMiddleware');
 
-// Aplicar middleware de autenticación a todas las rutas de clientes
-router.use(authMiddleware);
+router.use(authenticate, tenantScope);
 
-///Rutas especificas
-
-// Cliente obtiene backup de todos los clientes
-router.get('/clientes/backup/all', clienteController.getClientesBackup);
-
-// Cliente sincroniza sus clientes locales
-router.post('/clientes/sync', clienteController.syncClientes);
-
-
-///Coleccion Clientes
-
-
-//Cliente obtiene todos los clientes
-router.get('/clientes', clienteController.getAllClientes);
-
-//Cliente crea un nuevo cliente
-router.post('/clientes', clienteController.createCliente);
-
-
-///Recurso individual
-
-//Cliente obtiene un cliente por ID
-router.get('/clientes/:id', clienteController.getClienteById);
-// Cliente actualiza un cliente existente
-router.put('/clientes/:id', clienteController.updateCliente);
-
-//Cliente elimina un cliente por ID
-router.delete('/clientes/:id', clienteController.deleteCliente);
-
-
-
-
+router.get('/search', clienteController.searchClientes);
+router.post('/sync', clienteController.syncClientes);
+router.get('/', clienteController.getAllClientes);
+router.post('/', clienteController.createCliente);
+router.get('/:id', clienteController.getClienteById);
+router.get('/:id/estado-cuenta', clienteController.getEstadoCuenta);
+router.put('/:id', clienteController.updateCliente);
+router.delete('/:id', clienteController.deleteCliente);
 
 module.exports = router;

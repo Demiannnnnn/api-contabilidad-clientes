@@ -1,47 +1,52 @@
 const prisma = require('../config/database');
 
 class ProductoRepository {
-    async createProducto(data) {
-        return await prisma.producto.create({
-            data: {
-                userId: data.userId,
-                nombre: data.nombre,
-                descripcion: data.descripcion,
-                precio: data.precio,
-                stock: data.stock,
-            },
-            include: {
-                user: true,
-            },
-        });
-    }
-    async findAll(userId) {
-        return await prisma.producto.findMany({
-            where: { userId },
-            orderBy: { createdAt: 'desc' }
-        });
-    }
-    async findById(id) {
-        return await prisma.producto.findUnique({
-            where: {id},
-        });
-    }
-    async update(id, data) {
-        return await prisma.producto.update({
-            where: {id},
-            data: {
-                nombre: data.nombre,
-                descripcion: data.descripcion,
-                precio: data.precio,
-                stock: data.stock,
-            },
-        });
-    }
-    async delete(id) {
-        return await prisma.producto.delete({
-            where: {id},
-        });
-    }
+  async findAll(tenantId, { skip, limit } = {}) {
+    return prisma.producto.findMany({
+      where: { tenantId },
+      orderBy: { createdAt: 'desc' },
+      skip: skip || 0,
+      take: limit || 50,
+    });
+  }
+
+  async countAll(tenantId) {
+    return prisma.producto.count({ where: { tenantId } });
+  }
+
+  async findById(tenantId, id) {
+    return prisma.producto.findFirst({ where: { id, tenantId } });
+  }
+
+  async findByCodigo(tenantId, codigo) {
+    return prisma.producto.findFirst({ where: { tenantId, codigo } });
+  }
+
+  async search(tenantId, q) {
+    return prisma.producto.findMany({
+      where: {
+        tenantId,
+        OR: [
+          { nombre: { contains: q, mode: 'insensitive' } },
+          { codigo: { contains: q, mode: 'insensitive' } },
+          { descripcion: { contains: q, mode: 'insensitive' } },
+        ],
+      },
+      take: 50,
+    });
+  }
+
+  async create(data) {
+    return prisma.producto.create({ data });
+  }
+
+  async update(tenantId, id, data) {
+    return prisma.producto.update({ where: { id }, data });
+  }
+
+  async delete(tenantId, id) {
+    return prisma.producto.delete({ where: { id } });
+  }
 }
 
-module.exports = ProductoRepository;
+module.exports = new ProductoRepository();

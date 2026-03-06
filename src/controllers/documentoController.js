@@ -1,67 +1,108 @@
 const documentoService = require('../services/documentoService');
 
-const getFacturasBackup = (req, res) => {
-  try{
-    const {documentoId} = req.body;
+const getAllDocumentos = async (req, res) => {
+  try {
+    const result = await documentoService.listDocumentos(req.tenantId, req.query);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
+
+const getDocumentoById = async (req, res) => {
+  try {
+    const doc = await documentoService.getDocumento(req.tenantId, req.params.id);
+    res.json({ success: true, data: doc });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
+
+const createDocumento = async (req, res) => {
+  try {
+    const doc = await documentoService.createDocumento(req.tenantId, req.body);
+    res.status(201).json({ success: true, data: doc });
   } catch (error) {
     const status = error.status || 500;
-    res.status(status).json({ success: false, error: error.message || 'Error al obtener backup de facturas' });
+    const response = { success: false };
+    if (error.errors) { response.errors = error.errors; response.error = 'Error de validación'; }
+    else { response.error = error.message; }
+    res.status(status).json(response);
+  }
+};
 
-}
-}
-const syncFacturas = (req, res) => {
-    // Lógica para sincronizar documentos locales
-    res.json({ message: 'Facturas sincronizadas' });
-}
+const updateDocumento = async (req, res) => {
+  try {
+    const doc = await documentoService.updateDocumento(req.tenantId, req.params.id, req.body);
+    res.json({ success: true, data: doc });
+  } catch (error) {
+    const status = error.status || 500;
+    const response = { success: false };
+    if (error.errors) { response.errors = error.errors; response.error = 'Error de validación'; }
+    else { response.error = error.message; }
+    res.status(status).json(response);
+  }
+};
 
-const getAllFacturas = (req, res) => {
-    // Lógica para obtener todas las documentos
-    res.json({ message: 'Lista de todas las documentos' });
-}
+const cambiarEstado = async (req, res) => {
+  try {
+    const { estado } = req.body;
+    if (!estado) return res.status(400).json({ success: false, error: 'Se requiere el campo estado' });
+    const doc = await documentoService.cambiarEstado(req.tenantId, req.params.id, estado);
+    res.json({ success: true, data: doc });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
 
-const createFactura = async(req, res) => {
-    try{
-        const { userId, clienteId, productos, total, fecha } = req.body;
-        // Validación básica
-        if (!userId || !clienteId || !productos || !total) {
-            return res.status(400).json({ success: false, error: 'Faltan campos obligatorios' });
-        }
-        const facturaCreada = await documentoService.createFactura(userId, clienteId, productos, total, fecha);
-        res.status(201).json({ success: true, message: 'Factura creada exitosamente', factura: facturaCreada });
-    }catch(error){
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al crear factura' });
+const deleteDocumento = async (req, res) => {
+  try {
+    await documentoService.deleteDocumento(req.tenantId, req.params.id);
+    res.json({ success: true, message: 'Documento eliminado' });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
+
+const syncDocumentos = async (req, res) => {
+  try {
+    const { documentos } = req.body;
+    if (!Array.isArray(documentos)) {
+      return res.status(400).json({ success: false, error: 'Se esperaba un array de documentos' });
     }
-}
+    const result = await documentoService.syncDocumentos(req.tenantId, documentos);
+    res.json({ success: true, data: result });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
 
-const updateFactura = async (req, res) => {
-    try {
-        const { id } = req.params;
-        const { userId, clienteId, productos, total, fecha } = req.body;
-        const facturaActualizada = await documentoService.updateFactura(id, userId, clienteId, productos, total, fecha);
-        res.json({ success: true, message: 'Factura actualizada exitosamente', factura: facturaActualizada });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al actualizar factura' });
+const getDocumentoPdf = async (req, res) => {
+  try {
+    const doc = await documentoService.getDocumento(req.tenantId, req.params.id);
+    if (!doc.pdfUrl) {
+      return res.status(404).json({ success: false, error: 'PDF no disponible' });
     }
-}
+    res.json({ success: true, data: { pdfUrl: doc.pdfUrl } });
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
 
-const deleteFactura = async (req, res) => {
-    try {
-        const { id } = req.params;
-        await documentoService.deleteFactura(id);
-        res.json({ success: true, message: `Factura con ID ${id} eliminada` });
-    } catch (error) {
-        const status = error.status || 500;
-        res.status(status).json({ success: false, error: error.message || 'Error al eliminar factura' });
+const getDocumentoXml = async (req, res) => {
+  try {
+    const doc = await documentoService.getDocumento(req.tenantId, req.params.id);
+    if (!doc.xmlContent) {
+      return res.status(404).json({ success: false, error: 'XML no disponible' });
     }
-}
+    res.set('Content-Type', 'application/xml');
+    res.send(doc.xmlContent);
+  } catch (error) {
+    res.status(error.status || 500).json({ success: false, error: error.message });
+  }
+};
 
 module.exports = {
-    getFacturasBackup,
-    syncFacturas,
-    getAllFacturas,
-    createFactura,
-    updateFactura,
-    deleteFactura
+  getAllDocumentos, getDocumentoById, createDocumento, updateDocumento,
+  cambiarEstado, deleteDocumento, syncDocumentos, getDocumentoPdf, getDocumentoXml
 };

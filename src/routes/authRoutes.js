@@ -1,22 +1,17 @@
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');
-const authMiddleware = require('../middleware/auth');
-const {validateRegister, validateLogin, validateChangePassword} = require('../middleware/validateRequest');
+const { authenticate } = require('../middleware/authMiddleware');
+const { authLimiter } = require('../middleware/rateLimiter');
 
-// Ruta para el registro de usuarios
-router.post('/register', validateRegister, authController.register);
+// Public routes
+router.post('/register', authLimiter, authController.register);
+router.post('/login', authLimiter, authController.login);
+router.post('/refresh', authController.refresh);
 
-// Ruta para el inicio de sesión
-router.post('/login', validateLogin, authController.login);
-
-// Ruta para el cambio de contraseña
-router.post('/change-password', authMiddleware, validateChangePassword, authController.changePassword);
-
-// Ruta para obtener el perfil del usuario autenticado
-router.get('/me', authMiddleware, authController.getProfile);
+// Protected routes
+router.post('/logout', authenticate, authController.logout);
+router.get('/me', authenticate, authController.getProfile);
+router.post('/change-password', authenticate, authController.changePassword);
 
 module.exports = router;
-
-
-
