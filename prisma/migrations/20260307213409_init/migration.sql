@@ -1,10 +1,4 @@
 -- CreateEnum
-CREATE TYPE "Role" AS ENUM ('ADMIN', 'EMPRESA', 'PERSONAL', 'CONTADOR');
-
--- CreateEnum
-CREATE TYPE "TipoCliente" AS ENUM ('PERSONA', 'EMPRESA');
-
--- CreateEnum
 CREATE TYPE "TipoDocumento" AS ENUM ('FACTURA_ELECTRONICA', 'FACTURA_EXENTA', 'BOLETA_ELECTRONICA', 'BOLETA_EXENTA', 'NOTA_CREDITO', 'NOTA_DEBITO', 'GUIA_DESPACHO');
 
 -- CreateEnum
@@ -14,15 +8,16 @@ CREATE TYPE "EstadoDocumento" AS ENUM ('BORRADOR', 'EMITIDO', 'ANULADO');
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
     "email" TEXT NOT NULL,
-    "password" TEXT NOT NULL,
-    "name" TEXT,
-    "role" "Role" NOT NULL DEFAULT 'PERSONAL',
+    "passwordHash" TEXT NOT NULL,
+    "rut" TEXT,
+    "nombre" TEXT,
+    "rol" TEXT NOT NULL DEFAULT 'vendedor',
+    "permisos" TEXT NOT NULL DEFAULT '{}',
+    "activo" BOOLEAN NOT NULL DEFAULT true,
+    "requiereAutorizacion" BOOLEAN NOT NULL DEFAULT false,
+    "ultimoAcceso" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "rut" TEXT NOT NULL,
-    "razonSocial" TEXT,
-    "giro" TEXT,
-    "direccion" TEXT,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -41,24 +36,28 @@ CREATE TABLE "ContadorCliente" (
 CREATE TABLE "Cliente" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
-    "rut" TEXT,
-    "nombre" TEXT NOT NULL,
-    "email" TEXT,
-    "telefono" TEXT,
-    "direccion" TEXT,
+    "rut" TEXT NOT NULL,
+    "razonSocial" TEXT NOT NULL,
+    "nombreFantasia" TEXT,
     "giro" TEXT,
-    "razon_social" TEXT,
-    "nombre_fantasia" TEXT,
+    "direccion" TEXT,
     "region" TEXT,
     "comuna" TEXT,
     "ciudad" TEXT,
-    "nombre_contacto" TEXT,
-    "email_contacto" TEXT,
-    "condicion_pago" BOOLEAN,
-    "dias_credito" INTEGER NOT NULL,
-    "limite_credito" INTEGER NOT NULL,
-    "desc_auto" DECIMAL(65,30) NOT NULL,
-    "tipo" "TipoCliente" NOT NULL DEFAULT 'PERSONA',
+    "telefono" TEXT,
+    "email" TEXT,
+    "tipoDocumento" TEXT NOT NULL DEFAULT 'rut_empresa',
+    "contactoNombre" TEXT,
+    "contactoCargo" TEXT,
+    "contactoEmail" TEXT,
+    "contactoTelefono" TEXT,
+    "condicionPago" TEXT NOT NULL DEFAULT 'contado',
+    "diasCredito" INTEGER NOT NULL DEFAULT 0,
+    "limiteCredito" DECIMAL(12,0) NOT NULL DEFAULT 0,
+    "descuentoAutomatico" DECIMAL(5,2) NOT NULL DEFAULT 0,
+    "vendedorId" INTEGER,
+    "zona" TEXT,
+    "listaPrecios" TEXT NOT NULL DEFAULT 'normal',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
 
@@ -76,6 +75,14 @@ CREATE TABLE "Producto" (
     "stock" INTEGER NOT NULL DEFAULT 0,
     "exento" BOOLEAN NOT NULL DEFAULT false,
     "activo" BOOLEAN NOT NULL DEFAULT true,
+    "unidadMedida" TEXT DEFAULT 'UN',
+    "stockMinimo" INTEGER NOT NULL DEFAULT 0,
+    "stockMaximo" INTEGER,
+    "costo" DECIMAL(10,0),
+    "localId" INTEGER,
+    "syncHash" TEXT,
+    "syncStatus" TEXT DEFAULT 'synced',
+    "lastSyncedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "categoriaId" INTEGER,
