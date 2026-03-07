@@ -5,8 +5,8 @@ const { authenticate, requireRole, tenantScope } = require('../middleware/authMi
 
 router.use(authenticate, tenantScope);
 
-router.get('/', requireRole('dueño', 'admin'), folioController.listFolios);
-router.post('/upload-caf', requireRole('dueño', 'admin'), folioController.uploadCaf);
-router.get('/:tipo/next', requireRole('dueño', 'admin', 'vendedor'), folioController.getNextFolio);
+router.get('/', requireRole('dueño', 'administrador'), folioController.listFolios);
+router.post('/upload-caf', requireRole('dueño', 'administrador'), folioController.uploadCaf);
+router.get('/:tipo/next', requireRole('dueño', 'administrador', 'vendedor'), folioController.getNextFolio);
 
 module.exports = router;

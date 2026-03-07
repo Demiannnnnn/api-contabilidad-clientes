@@ -9,14 +9,14 @@ const SALT_ROUNDS = 10;
 
 class AuthService {
   // ============================================
-  // Register — creates tenant + owner user
+  // Register — creates user
   // ============================================
   async register(data) {
     const validated = validate(schemas.register, data);
     const email = sanitizeEmail(validated.email);
     const rut = limpiarRut(validated.rut);
 
-    // Check if email is already used globally
+    // Check if email is already used
     const existingUser = await authRepository.findUserByEmailGlobal(email);
     if (existingUser) {
       const err = new Error('El email ya está registrado');
@@ -24,51 +24,46 @@ class AuthService {
       throw err;
     }
 
-    // Check if tenant RUT already exists
-    const existingTenant = await authRepository.findTenantByRut(rut);
-    if (existingTenant) {
-      const err = new Error('Ya existe una empresa registrada con ese RUT');
+    // Check if RUT already exists
+    const existingRut = await authRepository.findUserByRut(rut);
+    if (existingRut) {
+      const err = new Error('Ya existe un usuario registrado con ese RUT');
       err.status = 400;
       throw err;
     }
 
     const passwordHash = await bcrypt.hash(validated.password, SALT_ROUNDS);
 
-    // Create tenant + user in transaction
-    const { tenant, user } = await authRepository.createTenantAndUser(
-      {
-        rut,
-        razonSocial: validated.razon_social || validated.nombre,
-        giro: validated.giro || null,
-        // Trial: 30 days from now
-        licenciaEstado: 'trial',
-        licenciaExpira: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
-      },
-      {
-        email,
-        passwordHash,
-        nombre: validated.nombre,
-        rut,
-        rol: 'dueño',
-        machineId: validated.machineId || null,
-      }
-    );
+    // Create user — first user is dueño (owner/admin)
+    const user = await authRepository.createUser({
+      email,
+      passwordHash,
+      rut,
+      nombre: validated.nombre,
+      rol: 'dueño',
+      permisos: JSON.stringify({
+        facturas: { crear: true, ver: true, editar: true, eliminar: true, emitir: true, anular: true },
+        boletas: { crear: true, ver: true, editar: true, eliminar: true, emitir: true, anular: true },
+        clientes: { crear: true, ver: true, editar: true, eliminar: true },
+        productos: { crear: true, ver: true, editar: true, eliminar: true },
+        vendedores: { crear: true, ver: true, editar: true, eliminar: true },
+        caja: { acceder: true, abrir: true, cerrar: true, ver_movimientos: true },
+        reportes: { ver: true, exportar: true, financieros: true },
+        configuracion: { acceder: true, empresa: true, folios: true, usuarios: true },
+        documentos: { ver: true, anular: true, reenviar: true },
+      }),
+      activo: true,
+    });
 
     // Generate tokens
     const { accessToken, refreshToken } = await this._generateTokenPair(user, validated.machineId);
 
-    logger.info(`[Auth] User registered: ${email}, tenant: ${tenant.id}`);
+    logger.info(`[Auth] User registered: ${email}, id: ${user.id}`);
 
     return {
       accessToken,
       refreshToken,
       user: sanitizeUser(user),
-      tenant: {
-        id: tenant.id,
-        rut: tenant.rut,
-        razonSocial: tenant.razonSocial,
-        plan: tenant.plan,
-      },
     };
   }
 
@@ -219,7 +214,6 @@ class AuthService {
       {
         sub: user.id,
         email: user.email,
-        tenantId: user.tenantId,
         rol: user.rol,
         machineId: machineId || null,
       },

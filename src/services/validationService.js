@@ -13,10 +13,17 @@ const registerSchema = z.object({
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Mínimo 8 caracteres'),
   rut: rutSchema,
-  nombre: z.string().min(1, 'Nombre requerido'),
+  nombre: z.string().min(1, 'Nombre requerido').optional(),
+  name: z.string().min(1, 'Nombre requerido').optional(),
   razon_social: z.string().optional(),
   giro: z.string().optional(),
   machineId: z.string().optional(),
+}).transform((data) => {
+  const nombre = data.nombre || data.name;
+  if (!nombre) {
+    throw new z.ZodError([{ code: 'custom', path: ['nombre'], message: 'Nombre requerido' }]);
+  }
+  return { ...data, nombre, name: undefined };
 });
 
 const loginSchema = z.object({
@@ -68,11 +75,22 @@ const updateUserSchema = z.object({
   permisos: z.record(z.any()).optional(),
 });
 
-// === Cliente Schema ===
-const clienteSchema = z.object({
+// === Helper: camelCase to snake_case ===
+function camelToSnake(obj) {
+  if (!obj || typeof obj !== 'object') return obj;
+  const result = {};
+  for (const [key, value] of Object.entries(obj)) {
+    const snakeKey = key.replace(/[A-Z]/g, (m) => '_' + m.toLowerCase());
+    result[snakeKey] = value;
+  }
+  return result;
+}
+
+// === Cliente Schema (camelCase — matches app + Prisma) ===
+const clienteSchemaBase = z.object({
   rut: rutSchema,
-  razon_social: z.string().min(1, 'Razón social requerida'),
-  nombre_fantasia: z.string().optional(),
+  razonSocial: z.string().min(1, 'Razón social requerida'),
+  nombreFantasia: z.string().optional(),
   giro: z.string().optional(),
   direccion: z.string().optional(),
   region: z.string().optional(),
@@ -80,21 +98,22 @@ const clienteSchema = z.object({
   ciudad: z.string().optional(),
   telefono: z.string().optional(),
   email: z.union([z.string().email(), z.literal('')]).optional(),
-  tipo_documento: z.string().optional(),
-  contacto_nombre: z.string().optional(),
-  contacto_cargo: z.string().optional(),
-  contacto_email: z.union([z.string().email(), z.literal('')]).optional(),
-  contacto_telefono: z.string().optional(),
-  condicion_pago: z.string().optional(),
-  dias_credito: z.number().int().min(0).optional(),
-  limite_credito: z.number().min(0).optional(),
-  descuento_automatico: z.number().min(0).max(100).optional(),
+  tipoDocumento: z.string().optional(),
+  contactoNombre: z.string().optional(),
+  contactoCargo: z.string().optional(),
+  contactoEmail: z.union([z.string().email(), z.literal('')]).optional(),
+  contactoTelefono: z.string().optional(),
+  condicionPago: z.string().optional(),
+  diasCredito: z.number().int().min(0).optional(),
+  limiteCredito: z.number().min(0).optional(),
+  descuentoAutomatico: z.number().min(0).max(100).optional(),
   zona: z.string().optional(),
-  lista_precios: z.string().optional(),
-  local_id: z.number().int().optional(),
+  listaPrecios: z.string().optional(),
+  localId: z.number().int().optional(),
 });
 
-const clienteUpdateSchema = clienteSchema.partial();
+const clienteSchema = clienteSchemaBase;
+const clienteUpdateSchema = clienteSchemaBase.partial();
 
 // === Producto Schema ===
 const productoSchema = z.object({

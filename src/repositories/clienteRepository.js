@@ -1,34 +1,34 @@
 const prisma = require('../config/database');
 
 class ClienteRepository {
-  async findAll(tenantId, { skip, limit } = {}) {
+  async findAll(userId, { skip, limit } = {}) {
     return prisma.cliente.findMany({
-      where: { tenantId },
+      where: { userId },
       orderBy: { createdAt: 'desc' },
       skip: skip || 0,
       take: limit || 50,
     });
   }
 
-  async countAll(tenantId) {
-    return prisma.cliente.count({ where: { tenantId } });
+  async countAll(userId) {
+    return prisma.cliente.count({ where: { userId } });
   }
 
-  async findById(tenantId, id) {
+  async findById(userId, id) {
     return prisma.cliente.findFirst({
-      where: { id, tenantId },
+      where: { id, userId },
       include: { documentos: { orderBy: { createdAt: 'desc' }, take: 10 } },
     });
   }
 
-  async findByRut(tenantId, rut) {
-    return prisma.cliente.findFirst({ where: { tenantId, rut } });
+  async findByRut(userId, rut) {
+    return prisma.cliente.findFirst({ where: { userId, rut } });
   }
 
-  async search(tenantId, q) {
+  async search(userId, q) {
     return prisma.cliente.findMany({
       where: {
-        tenantId,
+        userId,
         OR: [
           { razonSocial: { contains: q, mode: 'insensitive' } },
           { rut: { contains: q, mode: 'insensitive' } },
@@ -44,16 +44,16 @@ class ClienteRepository {
     return prisma.cliente.create({ data });
   }
 
-  async update(tenantId, id, data) {
+  async update(userId, id, data) {
     return prisma.cliente.update({ where: { id }, data });
   }
 
-  async delete(tenantId, id) {
+  async delete(userId, id) {
     return prisma.cliente.delete({ where: { id } });
   }
 
-  async createMany(tenantId, clientes) {
-    return prisma.cliente.createMany({ data: clientes.map(c => ({ ...c, tenantId })) });
+  async createMany(userId, clientes) {
+    return prisma.cliente.createMany({ data: clientes.map(c => ({ ...c, userId })) });
   }
 }
 

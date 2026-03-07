@@ -5,16 +5,16 @@ const { authenticate, requireRole, tenantScope } = require('../middleware/authMi
 
 router.use(authenticate, tenantScope);
 
-router.post('/sync', requireRole('dueño', 'admin'), documentoController.syncDocumentos);
+router.post('/sync', requireRole('dueño', 'administrador'), documentoController.syncDocumentos);
 
-router.get('/', requireRole('dueño', 'admin', 'vendedor', 'contador'), documentoController.getAllDocumentos);
-router.get('/:id', requireRole('dueño', 'admin', 'vendedor', 'contador'), documentoController.getDocumentoById);
-router.get('/:id/pdf', requireRole('dueño', 'admin', 'vendedor', 'contador'), documentoController.getDocumentoPdf);
-router.get('/:id/xml', requireRole('dueño', 'admin', 'vendedor', 'contador'), documentoController.getDocumentoXml);
+router.get('/', requireRole('dueño', 'administrador', 'vendedor', 'contador'), documentoController.getAllDocumentos);
+router.get('/:id', requireRole('dueño', 'administrador', 'vendedor', 'contador'), documentoController.getDocumentoById);
+router.get('/:id/pdf', requireRole('dueño', 'administrador', 'vendedor', 'contador'), documentoController.getDocumentoPdf);
+router.get('/:id/xml', requireRole('dueño', 'administrador', 'vendedor', 'contador'), documentoController.getDocumentoXml);
 
-router.post('/', requireRole('dueño', 'admin', 'vendedor'), documentoController.createDocumento);
-router.put('/:id', requireRole('dueño', 'admin'), documentoController.updateDocumento);
-router.patch('/:id/estado', requireRole('dueño', 'admin'), documentoController.cambiarEstado);
-router.delete('/:id', requireRole('dueño', 'admin'), documentoController.deleteDocumento);
+router.post('/', requireRole('dueño', 'administrador', 'vendedor'), documentoController.createDocumento);
+router.put('/:id', requireRole('dueño', 'administrador'), documentoController.updateDocumento);
+router.patch('/:id/estado', requireRole('dueño', 'administrador'), documentoController.cambiarEstado);
+router.delete('/:id', requireRole('dueño', 'administrador'), documentoController.deleteDocumento);
 
 module.exports = router;

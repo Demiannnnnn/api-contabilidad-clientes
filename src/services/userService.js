@@ -1,6 +1,5 @@
 const bcrypt = require('bcryptjs');
 const userRepository = require('../repositories/userRepository');
-const tenantRepository = require('../repositories/tenantRepository');
 const { validate, schemas } = require('./validationService');
 const { sanitizeEmail, limpiarRut } = require('../utils/helpers');
 
@@ -25,19 +24,10 @@ class UserService {
     const validated = validate(schemas.createUser, data);
     const email = sanitizeEmail(validated.email);
 
-    // Check tenant user limit
-    const tenant = await tenantRepository.findById(tenantId);
-    const count = await userRepository.countByTenant(tenantId);
-    if (tenant.maxUsuarios > 0 && count >= tenant.maxUsuarios) {
-      const err = new Error(`Límite de usuarios alcanzado (${tenant.maxUsuarios}). Mejora tu plan.`);
-      err.status = 403;
-      throw err;
-    }
-
     // Check duplicate email
     const existing = await userRepository.findByEmail(tenantId, email);
     if (existing) {
-      const err = new Error('Ya existe un usuario con ese email en esta empresa');
+      const err = new Error('Ya existe un usuario con ese email');
       err.status = 409;
       throw err;
     }
@@ -45,13 +35,12 @@ class UserService {
     const passwordHash = await bcrypt.hash(validated.password, SALT_ROUNDS);
 
     return userRepository.create({
-      tenantId,
       email,
       passwordHash,
       nombre: validated.nombre,
       rut: validated.rut ? limpiarRut(validated.rut) : null,
       rol: validated.rol,
-      permisos: validated.permisos || {},
+      permisos: typeof validated.permisos === 'object' ? JSON.stringify(validated.permisos) : validated.permisos || '{}',
     });
   }
 

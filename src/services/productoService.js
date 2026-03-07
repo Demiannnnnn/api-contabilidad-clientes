@@ -46,14 +46,13 @@ class ProductoService {
     }
 
     const producto = await productoRepository.create({
-      tenantId,
+      userId: tenantId,
       codigo: validated.codigo,
       nombre: validated.nombre,
       descripcion: validated.descripcion || null,
       precio: validated.precio,
       stock: validated.stock || 0,
       exento: validated.exento || false,
-      categoria: validated.categoria || null,
       unidadMedida: validated.unidad_medida || 'UN',
       stockMinimo: validated.stock_minimo || 0,
       stockMaximo: validated.stock_maximo || null,
@@ -62,7 +61,7 @@ class ProductoService {
       syncHash: generateSyncHash(validated),
     });
 
-    logger.info(`[ProductoService] Created: ${validated.codigo} for tenant ${tenantId}`);
+    logger.info(`[ProductoService] Created: ${validated.codigo} for user ${tenantId}`);
     return producto;
   }
 

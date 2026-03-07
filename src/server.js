@@ -19,12 +19,42 @@ server.use(express.json({ limit: '5mb' }));
 server.use(express.urlencoded({ extended: true }));
 
 // ─── Request Logging ───────────────────────────────────
+const SENSITIVE_KEYS = ['password', 'passwordHash', 'password_hash', 'token', 'refreshToken', 'accessToken', 'certificadoDigital', 'claveCertificado', 'flowSecretKey'];
+function sanitizeBody(body) {
+  if (!body || typeof body !== 'object') return body;
+  const sanitized = { ...body };
+  for (const key of SENSITIVE_KEYS) {
+    if (sanitized[key] !== undefined) sanitized[key] = '[REDACTED]';
+  }
+  return sanitized;
+}
+
 server.use((req, res, next) => {
   const start = process.hrtime();
+
+  // Intercept res.json to capture response body for error logging
+  const originalJson = res.json.bind(res);
+  let responseBody;
+  res.json = (body) => {
+    responseBody = body;
+    return originalJson(body);
+  };
+
   res.on('finish', () => {
     const duration = process.hrtime(start);
     const ms = (duration[0] * 1e3 + duration[1] / 1e6).toFixed(2);
-    logger.info(`${req.method} ${req.originalUrl} ${res.statusCode} ${ms}ms`);
+    const statusCode = res.statusCode;
+    const line = `${req.method} ${req.originalUrl} ${statusCode} ${ms}ms`;
+
+    if (statusCode >= 400) {
+      const bodyStr = req.body && Object.keys(req.body).length
+        ? ` | body=${JSON.stringify(sanitizeBody(req.body))}` : '';
+      const errStr = responseBody
+        ? ` | response=${JSON.stringify(responseBody)}` : '';
+      logger.error(`${line}${bodyStr}${errStr}`);
+    } else {
+      logger.info(line);
+    }
   });
   next();
 });

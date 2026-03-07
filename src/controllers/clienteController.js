@@ -2,7 +2,7 @@ const clienteService = require('../services/clienteService');
 
 const getAllClientes = async (req, res) => {
   try {
-    const result = await clienteService.listClientes(req.tenantId, req.query);
+    const result = await clienteService.listClientes(req.userId, req.query);
     res.json({ success: true, ...result });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, error: error.message });
@@ -11,7 +11,7 @@ const getAllClientes = async (req, res) => {
 
 const getClienteById = async (req, res) => {
   try {
-    const cliente = await clienteService.getCliente(req.tenantId, req.params.id);
+    const cliente = await clienteService.getCliente(req.userId, req.params.id);
     res.json({ success: true, data: cliente });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, error: error.message });
@@ -20,7 +20,7 @@ const getClienteById = async (req, res) => {
 
 const searchClientes = async (req, res) => {
   try {
-    const clientes = await clienteService.searchClientes(req.tenantId, req.query.q);
+    const clientes = await clienteService.searchClientes(req.userId, req.query.q);
     res.json({ success: true, data: clientes });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, error: error.message });
@@ -29,7 +29,7 @@ const searchClientes = async (req, res) => {
 
 const createCliente = async (req, res) => {
   try {
-    const cliente = await clienteService.createCliente(req.tenantId, req.body);
+    const cliente = await clienteService.createCliente(req.userId, req.body);
     res.status(201).json({ success: true, data: cliente });
   } catch (error) {
     const status = error.status || 500;
@@ -42,7 +42,7 @@ const createCliente = async (req, res) => {
 
 const updateCliente = async (req, res) => {
   try {
-    const cliente = await clienteService.updateCliente(req.tenantId, req.params.id, req.body);
+    const cliente = await clienteService.updateCliente(req.userId, req.params.id, req.body);
     res.json({ success: true, data: cliente });
   } catch (error) {
     const status = error.status || 500;
@@ -55,7 +55,7 @@ const updateCliente = async (req, res) => {
 
 const deleteCliente = async (req, res) => {
   try {
-    await clienteService.deleteCliente(req.tenantId, req.params.id);
+    await clienteService.deleteCliente(req.userId, req.params.id);
     res.json({ success: true, message: 'Cliente eliminado' });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, error: error.message });
@@ -64,7 +64,7 @@ const deleteCliente = async (req, res) => {
 
 const getEstadoCuenta = async (req, res) => {
   try {
-    const data = await clienteService.getEstadoCuenta(req.tenantId, req.params.id);
+    const data = await clienteService.getEstadoCuenta(req.userId, req.params.id);
     res.json({ success: true, data });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, error: error.message });
@@ -77,7 +77,7 @@ const syncClientes = async (req, res) => {
     if (!Array.isArray(clientes)) {
       return res.status(400).json({ success: false, error: 'Se esperaba un array de clientes' });
     }
-    const result = await clienteService.syncClientes(req.tenantId, clientes);
+    const result = await clienteService.syncClientes(req.userId, clientes);
     res.json({ success: true, data: result });
   } catch (error) {
     res.status(error.status || 500).json({ success: false, error: error.message });

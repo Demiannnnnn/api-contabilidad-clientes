@@ -50,14 +50,12 @@ const createVendedor = async (tenantId, data) => {
   }
 
   const vendedorData = {
-    tenantId,
+    userId: tenantId,
     nombre: validated.nombre,
-    apellido: validated.apellido || null,
+    rut: validated.rut || '',
+    cargo: validated.cargo || null,
     email: validated.email || null,
-    telefono: validated.telefono || null,
-    comision: validated.comision || 0,
     activo: validated.activo !== undefined ? validated.activo : true,
-    syncHash: generateSyncHash({ ...validated, tenantId })
   };
 
   return vendedorRepository.create(vendedorData);

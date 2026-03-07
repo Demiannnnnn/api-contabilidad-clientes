@@ -5,6 +5,9 @@ const logsDir = path.resolve(__dirname, '../../logs');
 const requestLogPath = path.join(logsDir, 'requests.log');
 const errorLogPath = path.join(logsDir, 'errors.log');
 
+// Ensure logs directory exists
+if (!fs.existsSync(logsDir)) fs.mkdirSync(logsDir, { recursive: true });
+
 function appendToFile(filePath, message) {
 	fs.appendFile(filePath, message + '\n', err => {
 		if (err) console.error('[LOGGER][FS ERROR]', err);
@@ -22,6 +25,8 @@ const logger = {
 	error: (...args) => {
 		const msg = `[ERROR] ${new Date().toISOString()} ${args.map(a => (typeof a === 'object' ? JSON.stringify(a) : a)).join(' ')}`;
 		console.error(msg);
+		// Write to both logs so requests.log has the full timeline
+		appendToFile(requestLogPath, msg);
 		appendToFile(errorLogPath, msg);
 		const lastArg = args.length ? args[args.length - 1] : undefined;
 		return lastArg;

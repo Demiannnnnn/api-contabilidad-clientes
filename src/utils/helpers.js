@@ -67,7 +67,7 @@ function excludeFields(obj, fields) {
 // Remove password fields from user objects
 function sanitizeUser(user) {
   if (!user) return null;
-  return excludeFields(user, ['passwordHash', 'password_hash']);
+  return excludeFields(user, ['password', 'passwordHash', 'password_hash']);
 }
 
 // Pagination helper

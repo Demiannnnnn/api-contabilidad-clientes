@@ -10,7 +10,7 @@ const apiLimiter = rateLimit({
   message: { success: false, error: 'Demasiadas solicitudes. Intenta de nuevo más tarde.' },
   keyGenerator: (req) => {
     // Rate limit per tenant if authenticated, otherwise per IP
-    return req.user?.tenantId || 'anonymous';
+    return req.user?.id || 'anonymous';
   },
 });
 
@@ -31,7 +31,7 @@ const syncLimiter = rateLimit({
   legacyHeaders: false,
   validate: { xForwardedForHeader: false },
   message: { success: false, error: 'Demasiadas operaciones de sincronización.' },
-  keyGenerator: (req) => req.user?.tenantId || 'anonymous',
+  keyGenerator: (req) => req.user?.id || 'anonymous',
 });
 
 module.exports = { apiLimiter, authLimiter, syncLimiter };

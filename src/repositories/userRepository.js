@@ -2,11 +2,11 @@ const prisma = require('../config/database');
 
 class UserRepository {
   async findAll(tenantId) {
+    // In single-user/flat model, list all users
     return prisma.user.findMany({
-      where: { tenantId },
       orderBy: { createdAt: 'desc' },
       select: {
-        id: true, tenantId: true, email: true, rut: true, nombre: true,
+        id: true, email: true, rut: true, nombre: true,
         rol: true, permisos: true, activo: true, ultimoAcceso: true,
         createdAt: true, updatedAt: true,
       },
@@ -15,9 +15,9 @@ class UserRepository {
 
   async findById(tenantId, id) {
     return prisma.user.findFirst({
-      where: { id, tenantId },
+      where: { id },
       select: {
-        id: true, tenantId: true, email: true, rut: true, nombre: true,
+        id: true, email: true, rut: true, nombre: true,
         rol: true, permisos: true, activo: true, ultimoAcceso: true,
         createdAt: true, updatedAt: true,
       },
@@ -26,7 +26,7 @@ class UserRepository {
 
   async findByEmail(tenantId, email) {
     return prisma.user.findFirst({
-      where: { tenantId, email: { equals: email, mode: 'insensitive' } },
+      where: { email: { equals: email, mode: 'insensitive' } },
     });
   }
 
@@ -34,7 +34,7 @@ class UserRepository {
     return prisma.user.create({
       data,
       select: {
-        id: true, tenantId: true, email: true, rut: true, nombre: true,
+        id: true, email: true, rut: true, nombre: true,
         rol: true, permisos: true, activo: true, createdAt: true,
       },
     });
@@ -45,7 +45,7 @@ class UserRepository {
       where: { id },
       data,
       select: {
-        id: true, tenantId: true, email: true, rut: true, nombre: true,
+        id: true, email: true, rut: true, nombre: true,
         rol: true, permisos: true, activo: true, updatedAt: true,
       },
     });
@@ -56,7 +56,7 @@ class UserRepository {
   }
 
   async countByTenant(tenantId) {
-    return prisma.user.count({ where: { tenantId } });
+    return prisma.user.count();
   }
 }
 

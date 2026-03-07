@@ -1,34 +1,25 @@
 const prisma = require('../config/database');
 
+// SyncQueue model doesn't exist in schema yet — stubs
 const createEntry = async (data) => {
-  return prisma.syncQueue.create({ data });
+  console.warn('[SyncRepository] SyncQueue model not in schema yet');
+  return { id: Date.now(), ...data };
 };
 
 const findPending = async (tenantId) => {
-  return prisma.syncQueue.findMany({
-    where: { tenantId, status: 'pending' },
-    orderBy: { queuedAt: 'asc' }
-  });
+  return [];
 };
 
 const findById = async (id) => {
-  return prisma.syncQueue.findFirst({ where: { id } });
+  return null;
 };
 
 const updateStatus = async (id, status, extra = {}) => {
-  return prisma.syncQueue.update({
-    where: { id },
-    data: { status, ...extra }
-  });
+  return null;
 };
 
 const getStats = async (tenantId) => {
-  const stats = await prisma.syncQueue.groupBy({
-    by: ['status'],
-    where: { tenantId },
-    _count: true
-  });
-  return stats.reduce((acc, s) => { acc[s.status] = s._count; return acc; }, {});
+  return {};
 };
 
 module.exports = { createEntry, findPending, findById, updateStatus, getStats };

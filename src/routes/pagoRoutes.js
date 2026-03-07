@@ -5,10 +5,10 @@ const { authenticate, requireRole, tenantScope } = require('../middleware/authMi
 
 router.use(authenticate, tenantScope);
 
-router.get('/cuentas-por-cobrar', requireRole('dueño', 'admin', 'contador'), pagoController.getCuentasPorCobrar);
-router.post('/sync', requireRole('dueño', 'admin'), pagoController.syncPagos);
-router.get('/documento/:docId', requireRole('dueño', 'admin', 'vendedor', 'contador'), pagoController.getPagosByDocumento);
-router.post('/', requireRole('dueño', 'admin', 'vendedor'), pagoController.createPago);
-router.delete('/:id', requireRole('dueño', 'admin'), pagoController.deletePago);
+router.get('/cuentas-por-cobrar', requireRole('dueño', 'administrador', 'contador'), pagoController.getCuentasPorCobrar);
+router.post('/sync', requireRole('dueño', 'administrador'), pagoController.syncPagos);
+router.get('/documento/:docId', requireRole('dueño', 'administrador', 'vendedor', 'contador'), pagoController.getPagosByDocumento);
+router.post('/', requireRole('dueño', 'administrador', 'vendedor'), pagoController.createPago);
+router.delete('/:id', requireRole('dueño', 'administrador'), pagoController.deletePago);
 
 module.exports = router;

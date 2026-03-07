@@ -18,7 +18,6 @@ const authenticate = async (req, res, next) => {
     req.user = {
       id: decoded.sub,
       email: decoded.email,
-      tenantId: decoded.tenantId,
       rol: decoded.rol,
       machineId: decoded.machineId,
     };
@@ -64,7 +63,7 @@ function requirePermission(recurso, accion) {
     }
     // Dueño has full access
     if (req.user.rol === 'dueño') return next();
-    // Admin has most access
+    // Administrador has most access
     if (req.user.rol === 'administrador') return next();
 
     try {
@@ -86,13 +85,14 @@ function requirePermission(recurso, accion) {
 }
 
 // ============================================
-// Tenant scope — injects tenantId
+// User scope — injects userId from token
 // ============================================
-function tenantScope(req, res, next) {
-  if (!req.user || !req.user.tenantId) {
-    return res.status(401).json({ success: false, error: 'Tenant no identificado' });
+function userScope(req, res, next) {
+  if (!req.user || !req.user.id) {
+    return res.status(401).json({ success: false, error: 'Usuario no identificado' });
   }
-  req.tenantId = req.user.tenantId;
+  req.userId = req.user.id;
+  req.tenantId = req.user.id; // backward compat — maps to userId in Prisma
   next();
 }
 
@@ -100,5 +100,6 @@ module.exports = {
   authenticate,
   requireRole,
   requirePermission,
-  tenantScope,
+  userScope,
+  tenantScope: userScope, // backward compat alias
 };

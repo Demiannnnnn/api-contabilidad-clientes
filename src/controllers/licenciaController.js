@@ -2,21 +2,25 @@ const prisma = require('../config/database');
 
 const validate = async (req, res) => {
   try {
-    const tenant = await prisma.tenant.findFirst({ where: { id: req.tenantId } });
-    if (!tenant) return res.status(404).json({ success: false, error: 'Tenant no encontrado' });
+    // Check user's licence
+    const licence = await prisma.licence.findFirst({ where: { userId: req.userId } });
+    if (!licence) {
+      return res.json({
+        success: true,
+        data: { valid: false, plan: 'free', estado: 'none', expira: null }
+      });
+    }
 
-    const isValid = tenant.licenciaEstado === 'active' || tenant.licenciaEstado === 'trial';
-    const isExpired = tenant.licenciaExpira && new Date() > new Date(tenant.licenciaExpira);
+    const isValid = licence.status === 'active' || licence.status === 'trial';
+    const isExpired = licence.expiresAt && new Date() > new Date(licence.expiresAt);
 
     res.json({
       success: true,
       data: {
         valid: isValid && !isExpired,
-        plan: tenant.plan,
-        estado: tenant.licenciaEstado,
-        expira: tenant.licenciaExpira,
-        maxUsuarios: tenant.maxUsuarios,
-        maxDocumentosMes: tenant.maxDocumentosMes
+        estado: licence.status,
+        expira: licence.expiresAt,
+        type: licence.type,
       }
     });
   } catch (error) {
@@ -26,33 +30,17 @@ const validate = async (req, res) => {
 
 const status = async (req, res) => {
   try {
-    const tenant = await prisma.tenant.findFirst({
-      where: { id: req.tenantId },
-      select: { plan: true, licenciaEstado: true, licenciaExpira: true, maxUsuarios: true, maxDocumentosMes: true, licenciaKey: true }
-    });
-    if (!tenant) return res.status(404).json({ success: false, error: 'Tenant no encontrado' });
-
-    // Count current usage
-    const [userCount, docCount] = await Promise.all([
-      prisma.user.count({ where: { tenantId: req.tenantId, activo: true } }),
-      prisma.documento.count({
-        where: {
-          tenantId: req.tenantId,
-          createdAt: { gte: new Date(new Date().getFullYear(), new Date().getMonth(), 1) }
-        }
-      })
-    ]);
+    const licence = await prisma.licence.findFirst({ where: { userId: req.userId } });
+    if (!licence) {
+      return res.json({ success: true, data: { plan: 'free', estado: 'none' } });
+    }
 
     res.json({
       success: true,
       data: {
-        plan: tenant.plan,
-        estado: tenant.licenciaEstado,
-        expira: tenant.licenciaExpira,
-        limites: {
-          usuarios: { usado: userCount, maximo: tenant.maxUsuarios },
-          documentosMes: { usado: docCount, maximo: tenant.maxDocumentosMes }
-        }
+        estado: licence.status,
+        expira: licence.expiresAt,
+        type: licence.type,
       }
     });
   } catch (error) {
@@ -65,25 +53,30 @@ const activate = async (req, res) => {
     const { licencia_key } = req.body;
     if (!licencia_key) return res.status(400).json({ success: false, error: 'Se requiere licencia_key' });
 
-    // TODO: Validate licencia_key against external service or database
-    const updated = await prisma.tenant.update({
-      where: { id: req.tenantId },
+    // Create or update licence
+    const existing = await prisma.licence.findFirst({ where: { userId: req.userId } });
+    if (existing) {
+      const updated = await prisma.licence.update({
+        where: { id: existing.id },
+        data: {
+          licenceKey: licencia_key,
+          status: 'active',
+          expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
+        }
+      });
+      return res.json({ success: true, data: updated });
+    }
+
+    const licence = await prisma.licence.create({
       data: {
-        licenciaKey: licencia_key,
-        licenciaEstado: 'active',
-        licenciaExpira: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000), // 1 year
-        plan: 'basic' // Default upgrade plan
+        userId: req.userId,
+        licenceKey: licencia_key,
+        status: 'active',
+        expiresAt: new Date(Date.now() + 365 * 24 * 60 * 60 * 1000),
       }
     });
 
-    res.json({
-      success: true,
-      data: {
-        plan: updated.plan,
-        estado: updated.licenciaEstado,
-        expira: updated.licenciaExpira
-      }
-    });
+    res.json({ success: true, data: licence });
   } catch (error) {
     res.status(500).json({ success: false, error: error.message });
   }

@@ -2,38 +2,33 @@ const prisma = require('../config/database');
 
 const findAll = async (tenantId, { skip = 0, take = 50, where = {} } = {}) => {
   return prisma.documento.findMany({
-    where: { tenantId, ...where },
+    where: { userId: tenantId, ...where },
     skip,
     take,
     orderBy: { createdAt: 'desc' },
     include: {
       cliente: { select: { id: true, rut: true, razonSocial: true } },
-      vendedor: { select: { id: true, nombre: true, apellido: true } },
-      _count: { select: { items: true, pagos: true } }
     }
   });
 };
 
 const countAll = async (tenantId, where = {}) => {
-  return prisma.documento.count({ where: { tenantId, ...where } });
+  return prisma.documento.count({ where: { userId: tenantId, ...where } });
 };
 
 const findById = async (tenantId, id) => {
   return prisma.documento.findFirst({
-    where: { id, tenantId },
+    where: { id, userId: tenantId },
     include: {
       cliente: true,
-      vendedor: true,
-      items: { orderBy: { numeroLinea: 'asc' }, include: { producto: { select: { id: true, codigo: true, nombre: true } } } },
-      referencias: true,
-      pagos: true
+      items: { include: { producto: { select: { id: true, codigo: true, nombre: true } } } },
     }
   });
 };
 
 const findByFolio = async (tenantId, tipoDocumento, folio) => {
   return prisma.documento.findFirst({
-    where: { tenantId, tipoDocumento, folio }
+    where: { userId: tenantId, tipo: tipoDocumento, numero: folio }
   });
 };
 
@@ -67,7 +62,7 @@ const create = async (data, items = [], referencias = []) => {
 
 const update = async (tenantId, id, data, items = null, referencias = null) => {
   return prisma.$transaction(async (tx) => {
-    const existing = await tx.documento.findFirst({ where: { id, tenantId } });
+    const existing = await tx.documento.findFirst({ where: { id, userId: tenantId } });
     if (!existing) return null;
 
     const documento = await tx.documento.update({
@@ -84,30 +79,18 @@ const update = async (tenantId, id, data, items = null, referencias = null) => {
       }
     }
 
-    if (referencias !== null) {
-      await tx.referenciaDocumento.deleteMany({ where: { documentoId: id } });
-      if (referencias.length > 0) {
-        await tx.referenciaDocumento.createMany({
-          data: referencias.map(ref => ({ ...ref, documentoId: id }))
-        });
-      }
-    }
-
     return tx.documento.findFirst({
       where: { id },
       include: {
-        items: { orderBy: { numeroLinea: 'asc' } },
-        referencias: true,
+        items: true,
         cliente: true,
-        vendedor: true,
-        pagos: true
       }
     });
   });
 };
 
 const updateEstado = async (tenantId, id, estado) => {
-  const doc = await prisma.documento.findFirst({ where: { id, tenantId } });
+  const doc = await prisma.documento.findFirst({ where: { id, userId: tenantId } });
   if (!doc) return null;
   return prisma.documento.update({
     where: { id },
@@ -123,7 +106,7 @@ const updateSiiStatus = async (id, siiData) => {
 };
 
 const remove = async (tenantId, id) => {
-  const doc = await prisma.documento.findFirst({ where: { id, tenantId } });
+  const doc = await prisma.documento.findFirst({ where: { id, userId: tenantId } });
   if (!doc) return null;
   return prisma.documento.delete({ where: { id } });
 };
@@ -132,23 +115,21 @@ const remove = async (tenantId, id) => {
 const sumByPeriod = async (tenantId, desde, hasta, where = {}) => {
   return prisma.documento.aggregate({
     where: {
-      tenantId,
-      fechaEmision: { gte: new Date(desde), lte: new Date(hasta) },
-      estado: { notIn: ['anulada', 'rechazada', 'borrador'] },
+      userId: tenantId,
+      fecha: { gte: new Date(desde), lte: new Date(hasta) },
       ...where
     },
-    _sum: { subtotal: true, iva: true, total: true, montoExento: true },
+    _sum: { neto: true, iva: true, total: true },
     _count: true
   });
 };
 
 const groupByTipo = async (tenantId, desde, hasta) => {
   return prisma.documento.groupBy({
-    by: ['tipoDocumento'],
+    by: ['tipo'],
     where: {
-      tenantId,
-      fechaEmision: { gte: new Date(desde), lte: new Date(hasta) },
-      estado: { notIn: ['anulada', 'rechazada', 'borrador'] }
+      userId: tenantId,
+      fecha: { gte: new Date(desde), lte: new Date(hasta) },
     },
     _sum: { total: true },
     _count: true
@@ -158,15 +139,15 @@ const groupByTipo = async (tenantId, desde, hasta) => {
 const groupByEstado = async (tenantId) => {
   return prisma.documento.groupBy({
     by: ['estado'],
-    where: { tenantId },
+    where: { userId: tenantId },
     _count: true
   });
 };
 
 const findPendingSync = async (tenantId) => {
   return prisma.documento.findMany({
-    where: { tenantId, syncStatus: 'pending' },
-    orderBy: { queuedAt: 'asc' }
+    where: { userId: tenantId },
+    orderBy: { createdAt: 'asc' }
   });
 };
 

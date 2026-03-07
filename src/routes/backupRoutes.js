@@ -5,9 +5,9 @@ const { authenticate, requireRole, tenantScope } = require('../middleware/authMi
 
 router.use(authenticate, tenantScope);
 
-router.post('/upload', requireRole('dueño', 'admin'), backupController.upload);
-router.get('/', requireRole('dueño', 'admin'), backupController.list);
-router.get('/:id/download', requireRole('dueño', 'admin'), backupController.download);
+router.post('/upload', requireRole('dueño', 'administrador'), backupController.upload);
+router.get('/', requireRole('dueño', 'administrador'), backupController.list);
+router.get('/:id/download', requireRole('dueño', 'administrador'), backupController.download);
 router.delete('/:id', requireRole('dueño'), backupController.remove);
 
 module.exports = router;

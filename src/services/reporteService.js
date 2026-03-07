@@ -13,14 +13,13 @@ const reporteVentas = async (tenantId, desde, hasta) => {
   return {
     periodo: { desde, hasta },
     resumen: {
-      totalNeto: summary._sum.subtotal || 0,
+      totalNeto: summary._sum.neto || 0,
       totalIva: summary._sum.iva || 0,
       totalBruto: summary._sum.total || 0,
-      totalExento: summary._sum.montoExento || 0,
       cantidadDocumentos: summary._count || 0
     },
     porTipo: byTipo.map(t => ({
-      tipoDocumento: t.tipoDocumento,
+      tipo: t.tipo,
       total: t._sum.total || 0,
       cantidad: t._count
     }))
@@ -40,41 +39,41 @@ const reporteTributario = async (tenantId, periodo) => {
   // Ventas (facturas + boletas)
   const ventas = await prisma.documento.aggregate({
     where: {
-      tenantId,
-      tipoDocumento: { in: [33, 34, 39, 41] },
-      fechaEmision: { gte: desde, lte: hasta },
-      estado: { notIn: ['anulada', 'rechazada', 'borrador'] }
+      userId: tenantId,
+      tipo: { in: ['FACTURA_ELECTRONICA', 'FACTURA_EXENTA', 'BOLETA_ELECTRONICA', 'BOLETA_EXENTA'] },
+      fecha: { gte: desde, lte: hasta },
+      estado: { not: 'ANULADO' }
     },
-    _sum: { subtotal: true, iva: true, total: true, montoExento: true }
+    _sum: { neto: true, iva: true, total: true }
   });
 
   // Notas de crédito
   const nc = await prisma.documento.aggregate({
     where: {
-      tenantId,
-      tipoDocumento: 61,
-      fechaEmision: { gte: desde, lte: hasta },
-      estado: { notIn: ['anulada', 'rechazada', 'borrador'] }
+      userId: tenantId,
+      tipo: 'NOTA_CREDITO',
+      fecha: { gte: desde, lte: hasta },
+      estado: { not: 'ANULADO' }
     },
-    _sum: { subtotal: true, iva: true, total: true }
+    _sum: { neto: true, iva: true, total: true }
   });
 
   // Notas de débito
   const nd = await prisma.documento.aggregate({
     where: {
-      tenantId,
-      tipoDocumento: 56,
-      fechaEmision: { gte: desde, lte: hasta },
-      estado: { notIn: ['anulada', 'rechazada', 'borrador'] }
+      userId: tenantId,
+      tipo: 'NOTA_DEBITO',
+      fecha: { gte: desde, lte: hasta },
+      estado: { not: 'ANULADO' }
     },
-    _sum: { subtotal: true, iva: true, total: true }
+    _sum: { neto: true, iva: true, total: true }
   });
 
   return {
     periodo,
-    ventas: { neto: ventas._sum.subtotal || 0, iva: ventas._sum.iva || 0, total: ventas._sum.total || 0, exento: ventas._sum.montoExento || 0 },
-    notasCredito: { neto: nc._sum.subtotal || 0, iva: nc._sum.iva || 0, total: nc._sum.total || 0 },
-    notasDebito: { neto: nd._sum.subtotal || 0, iva: nd._sum.iva || 0, total: nd._sum.total || 0 },
+    ventas: { neto: ventas._sum.neto || 0, iva: ventas._sum.iva || 0, total: ventas._sum.total || 0 },
+    notasCredito: { neto: nc._sum.neto || 0, iva: nc._sum.iva || 0, total: nc._sum.total || 0 },
+    notasDebito: { neto: nd._sum.neto || 0, iva: nd._sum.iva || 0, total: nd._sum.total || 0 },
     ivaDebito: Number(ventas._sum.iva || 0) - Number(nc._sum.iva || 0) + Number(nd._sum.iva || 0)
   };
 };
@@ -88,13 +87,12 @@ const productosMasVendidos = async (tenantId, query = {}) => {
     by: ['productoId'],
     where: {
       documento: {
-        tenantId,
-        fechaEmision: { gte: desde, lte: hasta },
-        estado: { notIn: ['anulada', 'rechazada', 'borrador'] }
+        userId: tenantId,
+        fecha: { gte: desde, lte: hasta },
       }
     },
-    _sum: { cantidad: true, montoItem: true },
-    orderBy: { _sum: { montoItem: 'desc' } },
+    _sum: { cantidad: true, subtotal: true },
+    orderBy: { _sum: { subtotal: 'desc' } },
     take: limit
   });
 
@@ -109,7 +107,7 @@ const productosMasVendidos = async (tenantId, query = {}) => {
   return items.map(i => ({
     producto: prodMap[i.productoId] || { id: i.productoId },
     cantidadVendida: i._sum.cantidad || 0,
-    montoTotal: i._sum.montoItem || 0
+    montoTotal: i._sum.subtotal || 0
   }));
 };
 
@@ -121,11 +119,10 @@ const clientesRanking = async (tenantId, query = {}) => {
   const docs = await prisma.documento.groupBy({
     by: ['clienteId'],
     where: {
-      tenantId,
+      userId: tenantId,
       clienteId: { not: null },
-      tipoDocumento: { in: [33, 34] },
-      fechaEmision: { gte: desde, lte: hasta },
-      estado: { notIn: ['anulada', 'rechazada', 'borrador'] }
+      tipo: { in: ['FACTURA_ELECTRONICA', 'FACTURA_EXENTA'] },
+      fecha: { gte: desde, lte: hasta },
     },
     _sum: { total: true },
     _count: true,
@@ -157,39 +154,20 @@ const reporteCaja = async (tenantId, fecha) => {
   const nextDay = new Date(day);
   nextDay.setDate(nextDay.getDate() + 1);
 
-  const [docs, pagos] = await Promise.all([
-    prisma.documento.aggregate({
-      where: {
-        tenantId,
-        fechaEmision: { gte: day, lt: nextDay },
-        estado: { notIn: ['anulada', 'rechazada', 'borrador'] }
-      },
-      _sum: { total: true },
-      _count: true
-    }),
-    prisma.pago.aggregate({
-      where: {
-        tenantId,
-        fechaPago: { gte: day, lt: nextDay }
-      },
-      _sum: { monto: true },
-      _count: true
-    })
-  ]);
-
-  // Pagos by forma
-  const pagosByForma = await prisma.pago.groupBy({
-    by: ['formaPago'],
-    where: { tenantId, fechaPago: { gte: day, lt: nextDay } },
-    _sum: { monto: true },
+  const docs = await prisma.documento.aggregate({
+    where: {
+      userId: tenantId,
+      fecha: { gte: day, lt: nextDay },
+    },
+    _sum: { total: true },
     _count: true
   });
 
   return {
     fecha,
     documentos: { total: docs._sum.total || 0, cantidad: docs._count || 0 },
-    cobros: { total: pagos._sum.monto || 0, cantidad: pagos._count || 0 },
-    cobrosPorForma: pagosByForma.map(p => ({ formaPago: p.formaPago, total: p._sum.monto || 0, cantidad: p._count }))
+    cobros: { total: 0, cantidad: 0 }, // Pago model not yet in schema
+    cobrosPorForma: []
   };
 };
 
@@ -198,19 +176,18 @@ const dashboard = async (tenantId) => {
   const monthStart = new Date(now.getFullYear(), now.getMonth(), 1);
   const yearStart = new Date(now.getFullYear(), 0, 1);
 
-  const [ventasMes, ventasAnio, docsByEstado, clientesTotal, productosTotal, docsPorCobrar] = await Promise.all([
+  const [ventasMes, ventasAnio, docsByEstado, clientesTotal, productosTotal] = await Promise.all([
     prisma.documento.aggregate({
-      where: { tenantId, fechaEmision: { gte: monthStart }, estado: { notIn: ['anulada', 'rechazada', 'borrador'] } },
+      where: { userId: tenantId, fecha: { gte: monthStart } },
       _sum: { total: true }, _count: true
     }),
     prisma.documento.aggregate({
-      where: { tenantId, fechaEmision: { gte: yearStart }, estado: { notIn: ['anulada', 'rechazada', 'borrador'] } },
+      where: { userId: tenantId, fecha: { gte: yearStart } },
       _sum: { total: true }, _count: true
     }),
     documentoRepository.groupByEstado(tenantId),
-    prisma.cliente.count({ where: { tenantId } }),
-    prisma.producto.count({ where: { tenantId } }),
-    prisma.documento.count({ where: { tenantId, estado: { in: ['emitida', 'parcial'] } } })
+    prisma.cliente.count({ where: { userId: tenantId } }),
+    prisma.producto.count({ where: { userId: tenantId } }),
   ]);
 
   return {
@@ -219,7 +196,6 @@ const dashboard = async (tenantId) => {
     documentosPorEstado: docsByEstado.reduce((acc, d) => { acc[d.estado] = d._count; return acc; }, {}),
     totalClientes: clientesTotal,
     totalProductos: productosTotal,
-    documentosPorCobrar: docsPorCobrar
   };
 };
 

@@ -5,10 +5,10 @@ const { authenticate, requireRole, tenantScope } = require('../middleware/authMi
 
 router.use(authenticate, tenantScope);
 
-router.post('/enviar-dte', requireRole('dueño', 'admin'), siiController.enviarDte);
-router.get('/consultar/:trackId', requireRole('dueño', 'admin'), siiController.consultarEstado);
-router.post('/generar-pdf/:folio', requireRole('dueño', 'admin', 'vendedor'), siiController.generarPdf);
-router.post('/firmar-xml', requireRole('dueño', 'admin'), siiController.firmarXml);
-router.post('/obtener-token', requireRole('dueño', 'admin'), siiController.obtenerToken);
+router.post('/enviar-dte', requireRole('dueño', 'administrador'), siiController.enviarDte);
+router.get('/consultar/:trackId', requireRole('dueño', 'administrador'), siiController.consultarEstado);
+router.post('/generar-pdf/:folio', requireRole('dueño', 'administrador', 'vendedor'), siiController.generarPdf);
+router.post('/firmar-xml', requireRole('dueño', 'administrador'), siiController.firmarXml);
+router.post('/obtener-token', requireRole('dueño', 'administrador'), siiController.obtenerToken);
 
 module.exports = router;
