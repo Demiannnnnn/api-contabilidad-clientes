@@ -53,11 +53,13 @@ class ProductoService {
       precio: validated.precio,
       stock: validated.stock || 0,
       exento: validated.exento || false,
-      unidadMedida: validated.unidad_medida || 'UN',
-      stockMinimo: validated.stock_minimo || 0,
-      stockMaximo: validated.stock_maximo || null,
+      activo: validated.activo !== undefined ? validated.activo : true,
+      unidadMedida: validated.unidadMedida || 'UN',
+      stockMinimo: validated.stockMinimo || 0,
+      stockMaximo: validated.stockMaximo || null,
       costo: validated.costo || null,
-      localId: validated.local_id || null,
+      localId: validated.localId || null,
+      categoriaId: validated.categoriaId || null,
       syncHash: generateSyncHash(validated),
     });
 
@@ -76,10 +78,11 @@ class ProductoService {
     if (validated.precio !== undefined) updateData.precio = validated.precio;
     if (validated.stock !== undefined) updateData.stock = validated.stock;
     if (validated.exento !== undefined) updateData.exento = validated.exento;
-    if (validated.categoria !== undefined) updateData.categoria = validated.categoria;
-    if (validated.unidad_medida !== undefined) updateData.unidadMedida = validated.unidad_medida;
-    if (validated.stock_minimo !== undefined) updateData.stockMinimo = validated.stock_minimo;
-    if (validated.stock_maximo !== undefined) updateData.stockMaximo = validated.stock_maximo;
+    if (validated.activo !== undefined) updateData.activo = validated.activo;
+    if (validated.categoriaId !== undefined) updateData.categoriaId = validated.categoriaId;
+    if (validated.unidadMedida !== undefined) updateData.unidadMedida = validated.unidadMedida;
+    if (validated.stockMinimo !== undefined) updateData.stockMinimo = validated.stockMinimo;
+    if (validated.stockMaximo !== undefined) updateData.stockMaximo = validated.stockMaximo;
     if (validated.costo !== undefined) updateData.costo = validated.costo;
 
     updateData.syncHash = generateSyncHash(updateData);

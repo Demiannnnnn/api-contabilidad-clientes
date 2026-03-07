@@ -122,8 +122,17 @@ server.use((err, req, res, next) => {
 });
 
 // ─── Start Server ──────────────────────────────────────
-server.listen(PORT, HOST, () => {
+const srv = server.listen(PORT, HOST, () => {
   logger.info(`Server running at http://${HOST}:${PORT}/`);
   logger.info(`Environment: ${process.env.NODE_ENV || 'development'}`);
+});
+
+srv.on('error', (err) => {
+  if (err.code === 'EADDRINUSE') {
+    logger.error(`Puerto ${PORT} ya está en uso. Cierra el otro proceso o cambia el puerto.`);
+  } else {
+    logger.error(`Error al iniciar servidor: ${err.message}`);
+  }
+  process.exit(1);
 });
 

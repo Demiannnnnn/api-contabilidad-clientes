@@ -115,23 +115,75 @@ const clienteSchemaBase = z.object({
 const clienteSchema = clienteSchemaBase;
 const clienteUpdateSchema = clienteSchemaBase.partial();
 
-// === Producto Schema ===
+// === Producto Schema (accepts camelCase from app + snake_case) ===
 const productoSchema = z.object({
   codigo: z.string().min(1, 'Código requerido'),
   nombre: z.string().min(1, 'Nombre requerido'),
   descripcion: z.string().optional(),
   precio: z.number().min(0, 'Precio debe ser positivo'),
   stock: z.number().int().min(0).optional(),
-  exento: z.boolean().optional(),
+  exento: z.union([z.boolean(), z.number()]).optional().transform(v => v === undefined ? undefined : Boolean(v)),
+  activo: z.union([z.boolean(), z.number()]).optional().transform(v => v === undefined ? undefined : Boolean(v)),
   categoria: z.string().optional(),
+  categoriaId: z.number().int().optional(),
+  // Accept both camelCase and snake_case
+  unidadMedida: z.string().optional(),
   unidad_medida: z.string().optional(),
+  stockMinimo: z.number().int().min(0).optional(),
   stock_minimo: z.number().int().min(0).optional(),
+  stockMaximo: z.number().int().min(0).optional().nullable(),
   stock_maximo: z.number().int().min(0).optional().nullable(),
   costo: z.number().min(0).optional().nullable(),
+  localId: z.number().int().optional(),
   local_id: z.number().int().optional(),
-});
+  syncHash: z.string().optional(),
+  syncStatus: z.string().optional(),
+}).transform(data => ({
+  ...data,
+  // Normalize to camelCase
+  unidadMedida: data.unidadMedida || data.unidad_medida,
+  stockMinimo: data.stockMinimo ?? data.stock_minimo,
+  stockMaximo: data.stockMaximo ?? data.stock_maximo,
+  localId: data.localId ?? data.local_id,
+  // Remove snake_case duplicates
+  unidad_medida: undefined,
+  stock_minimo: undefined,
+  stock_maximo: undefined,
+  local_id: undefined,
+}));
 
-const productoUpdateSchema = productoSchema.partial();
+const productoUpdateSchema = z.object({
+  codigo: z.string().min(1).optional(),
+  nombre: z.string().min(1).optional(),
+  descripcion: z.string().optional(),
+  precio: z.number().min(0).optional(),
+  stock: z.number().int().min(0).optional(),
+  exento: z.union([z.boolean(), z.number()]).optional().transform(v => v === undefined ? undefined : Boolean(v)),
+  activo: z.union([z.boolean(), z.number()]).optional().transform(v => v === undefined ? undefined : Boolean(v)),
+  categoria: z.string().optional(),
+  categoriaId: z.number().int().optional(),
+  unidadMedida: z.string().optional(),
+  unidad_medida: z.string().optional(),
+  stockMinimo: z.number().int().min(0).optional(),
+  stock_minimo: z.number().int().min(0).optional(),
+  stockMaximo: z.number().int().min(0).optional().nullable(),
+  stock_maximo: z.number().int().min(0).optional().nullable(),
+  costo: z.number().min(0).optional().nullable(),
+  localId: z.number().int().optional(),
+  local_id: z.number().int().optional(),
+  syncHash: z.string().optional(),
+  syncStatus: z.string().optional(),
+}).transform(data => ({
+  ...data,
+  unidadMedida: data.unidadMedida || data.unidad_medida,
+  stockMinimo: data.stockMinimo ?? data.stock_minimo,
+  stockMaximo: data.stockMaximo ?? data.stock_maximo,
+  localId: data.localId ?? data.local_id,
+  unidad_medida: undefined,
+  stock_minimo: undefined,
+  stock_maximo: undefined,
+  local_id: undefined,
+}));
 
 // === Vendedor Schema ===
 const vendedorSchema = z.object({
