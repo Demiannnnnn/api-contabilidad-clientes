@@ -73,21 +73,25 @@ server.get('/', (req, res) => {
 });
 
 // ─── Import Routes ─────────────────────────────────────
-const authRoutes = require('./routes/authRoutes');
-const tenantRoutes = require('./routes/tenantRoutes');
-const userRoutes = require('./routes/userRoutes');
-const clienteRoutes = require('./routes/clienteRoutes');
-const productoRoutes = require('./routes/productoRoutes');
-const vendedorRoutes = require('./routes/vendedorRoutes');
-const documentoRoutes = require('./routes/documentoRoutes');
-const pagoRoutes = require('./routes/pagoRoutes');
-const folioRoutes = require('./routes/folioRoutes');
-const syncRoutes = require('./routes/syncRoutes');
-const reporteRoutes = require('./routes/reporteRoutes');
-const siiRoutes = require('./routes/siiRoutes');
-const licenciaRoutes = require('./routes/licenciaRoutes');
-const flowRoutes = require('./routes/flowRoutes');
-const backupRoutes = require('./routes/backupRoutes');
+// Core
+const authRoutes = require('./routes/core/authRoutes');
+const tenantRoutes = require('./routes/core/tenantRoutes');
+const userRoutes = require('./routes/core/userRoutes');
+// Facturación
+const clienteRoutes = require('./routes/facturacion/clienteRoutes');
+const productoRoutes = require('./routes/facturacion/productoRoutes');
+const trabajadorRoutes = require('./routes/facturacion/trabajadorRoutes');
+const documentoRoutes = require('./routes/facturacion/documentoRoutes');
+const folioRoutes = require('./routes/facturacion/folioRoutes');
+// Pagos
+const pagoRoutes = require('./routes/pagos/pagoRoutes');
+const flowRoutes = require('./routes/pagos/flowRoutes');
+// Sistema
+const syncRoutes = require('./routes/sistema/syncRoutes');
+const reporteRoutes = require('./routes/sistema/reporteRoutes');
+const siiRoutes = require('./routes/sistema/siiRoutes');
+const licenciaRoutes = require('./routes/sistema/licenciaRoutes');
+const backupRoutes = require('./routes/sistema/backupRoutes');
 
 // ─── Mount Routes ──────────────────────────────────────
 server.use('/api/auth', authRoutes);
@@ -95,7 +99,7 @@ server.use('/api/tenant', tenantRoutes);
 server.use('/api/users', userRoutes);
 server.use('/api/clientes', clienteRoutes);
 server.use('/api/productos', productoRoutes);
-server.use('/api/vendedores', vendedorRoutes);
+server.use('/api/trabajadores', trabajadorRoutes);
 server.use('/api/documentos', documentoRoutes);
 server.use('/api/pagos', pagoRoutes);
 server.use('/api/folios', folioRoutes);

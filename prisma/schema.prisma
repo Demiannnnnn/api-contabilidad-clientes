@@ -23,7 +23,7 @@ model User {
   passwordHash          String
   rut                   String?
   nombre                String?
-  rol                   String    @default("vendedor")  // dueño, administrador, vendedor, cajero, contador
+  rol                   String    @default("trabajador")  // dueño, administrador, trabajador, cajero, contador
   permisos              String    @default("{}")         // JSON de permisos granulares
   activo                Boolean   @default(true)
   requiereAutorizacion  Boolean   @default(false)
@@ -89,7 +89,7 @@ model Cliente {
   diasCredito         Int       @default(0)
   limiteCredito       Decimal   @default(0) @db.Decimal(12, 0)
   descuentoAutomatico Decimal   @default(0) @db.Decimal(5, 2)
-  vendedorId          Int?
+  trabajadorId        Int?
   zona                String?
   listaPrecios        String    @default("normal")
 
