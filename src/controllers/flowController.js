@@ -6,6 +6,12 @@ const FLOW_API_URL = process.env.FLOW_API_URL || 'https://www.flow.cl/api';
 const FLOW_API_KEY = process.env.FLOW_API_KEY;
 const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY;
 
+// Precios definidos en el servidor — nunca confiar en el cliente
+const PLAN_PRICES = {
+  monthly: 49990,
+  yearly: 499990,
+};
+
 // ─── Helpers ───────────────────────────────────────────
 function signParams(params) {
   const sorted = Object.keys(params).sort().map(k => `${k}${params[k]}`).join('');
@@ -56,9 +62,14 @@ const createOrder = async (req, res) => {
       return res.status(503).json({ success: false, error: 'Flow no está configurado en el servidor' });
     }
 
-    const { plan, amount, email } = req.body;
-    if (!plan || !amount) {
-      return res.status(400).json({ success: false, error: 'Se requiere plan y amount' });
+    const { plan, email } = req.body;
+    if (!plan) {
+      return res.status(400).json({ success: false, error: 'Se requiere plan' });
+    }
+
+    const amount = PLAN_PRICES[plan];
+    if (!amount) {
+      return res.status(400).json({ success: false, error: `Plan inválido: ${plan}. Planes válidos: ${Object.keys(PLAN_PRICES).join(', ')}` });
     }
 
     const commerceOrder = `ORD-${req.userId}-${Date.now()}`;
