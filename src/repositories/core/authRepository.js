@@ -78,6 +78,27 @@ class AuthRepository {
       },
     });
   }
+
+  // ============================================
+  // Machine Binding methods
+  // ============================================
+  async findMachineBinding(machineId) {
+    return prisma.machineBinding.findUnique({
+      where: { machineId },
+      include: { owner: true },
+    });
+  }
+
+  async createMachineBinding(data) {
+    return prisma.machineBinding.create({ data });
+  }
+
+  async updateMachineBinding(machineId, data) {
+    return prisma.machineBinding.update({
+      where: { machineId },
+      data,
+    });
+  }
 }
 
 module.exports = new AuthRepository();

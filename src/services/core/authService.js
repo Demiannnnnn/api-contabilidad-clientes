@@ -32,6 +32,17 @@ class AuthService {
       throw err;
     }
 
+    // Check if machineId is already bound to another user
+    if (validated.machineId) {
+      const existingBinding = await authRepository.findMachineBinding(validated.machineId);
+      if (existingBinding) {
+        const err = new Error('Esta instancia ya está vinculada a otro usuario');
+        err.status = 409;
+        err.code = 'MACHINE_ALREADY_BOUND';
+        throw err;
+      }
+    }
+
     const passwordHash = await bcrypt.hash(validated.password, SALT_ROUNDS);
 
     // Create user — first user is dueño (owner/admin)
@@ -54,6 +65,16 @@ class AuthService {
       }),
       activo: true,
     });
+
+    // Create machine binding if machineId provided
+    if (validated.machineId) {
+      await authRepository.createMachineBinding({
+        machineId: validated.machineId,
+        ownerId: user.id,
+        activo: true,
+      });
+      logger.info(`[Auth] Machine binding created: ${validated.machineId} → user ${user.id}`);
+    }
 
     // Generate tokens
     const { accessToken, refreshToken } = await this._generateTokenPair(user, validated.machineId);
@@ -92,6 +113,54 @@ class AuthService {
       const err = new Error('Credenciales inválidas');
       err.status = 401;
       throw err;
+    }
+
+    // ============================================
+    // VALIDACIÓN MACHINE BINDING
+    // ============================================
+    if (validated.machineId) {
+      const binding = await authRepository.findMachineBinding(validated.machineId);
+
+      if (!binding) {
+        // No hay binding: crear uno si el usuario es dueño sin binding previo
+        if (user.rol === 'dueño' && !user.duenoId) {
+          // Verificar que este dueño no tenga ya otra máquina vinculada
+          const existingBinding = await authRepository.findMachineBinding(user.id);
+          if (!existingBinding) {
+            await authRepository.createMachineBinding({
+              machineId: validated.machineId,
+              ownerId: user.id,
+              activo: true,
+            });
+            logger.info(`[Auth] Machine binding auto-created: ${validated.machineId} → user ${user.id}`);
+          }
+        } else {
+          // Usuario trabajador o contador intenta login en máquina sin binding
+          const err = new Error('Esta instancia no está vinculada. Solo el dueño puede inicializar.');
+          err.status = 403;
+          err.code = 'MACHINE_NOT_BOUND';
+          throw err;
+        }
+      } else {
+        // Validar que el usuario pertenezca a esta máquina
+        const perteneceAMaquina =
+          user.id === binding.ownerId ||            // Es el dueño
+          user.duenoId === binding.ownerId;         // Es trabajador del dueño
+
+        if (!perteneceAMaquina) {
+          const err = new Error('Este usuario no pertenece a esta instancia de la aplicación');
+          err.status = 403;
+          err.code = 'USER_NOT_AUTHORIZED_FOR_MACHINE';
+          throw err;
+        }
+
+        if (!binding.activo) {
+          const err = new Error('Esta instancia ha sido desactivada');
+          err.status = 403;
+          err.code = 'MACHINE_BINDING_INACTIVE';
+          throw err;
+        }
+      }
     }
 
     // Update last access

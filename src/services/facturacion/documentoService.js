@@ -1,6 +1,8 @@
 const documentoRepository = require('../../repositories/facturacion/documentoRepository');
 const { validate, documentoSchema, documentoUpdateSchema, documentoItemSchema, referenciaSchema } = require('../core/validationService');
 const { generateSyncHash, parsePagination } = require('../../utils/helpers');
+const siiService = require('../sistema/siiService');
+const logger = require('../../utils/logger');
 
 const TIPOS_DOCUMENTO = { 33: 'Factura Electrónica', 34: 'Factura Exenta', 39: 'Boleta Electrónica', 41: 'Boleta Exenta', 52: 'Guía Despacho', 56: 'Nota Débito', 61: 'Nota Crédito' };
 const ESTADOS_VALIDOS = ['borrador', 'pendiente', 'emitida', 'pagada', 'parcial', 'anulada', 'rechazada'];
@@ -123,7 +125,42 @@ const createDocumento = async (tenantId, data) => {
     syncHash: generateSyncHash({ ...validated, tenantId })
   };
 
-  return documentoRepository.create(docData, items, referencias);
+  // Crear documento en DB
+  const documento = await documentoRepository.create(docData, items, referencias);
+
+  // Si se solicita emisión automática al SII
+  const debeEmitir = validated.emitir === true || validated.estado === 'emitida';
+  if (debeEmitir) {
+    try {
+      logger.info(`[DocumentoService] Enviando documento ${documento.id} al SII`);
+      const resultadoSII = await siiService.enviarDocumento(tenantId, documento);
+
+      // Actualizar documento con datos del SII
+      await documentoRepository.update(tenantId, documento.id, {
+        trackIdSII: resultadoSII.trackId,
+        estadoSII: resultadoSII.estado,
+        fechaEnvioSII: resultadoSII.timestamp,
+        xmlEnviado: resultadoSII.xmlEnviado,
+        estado: 'emitida',
+      });
+
+      logger.info(`[DocumentoService] Documento ${documento.id} enviado al SII. TrackID: ${resultadoSII.trackId}`);
+
+      // Refrescar documento con datos actualizados
+      return documentoRepository.findById(tenantId, documento.id);
+    } catch (siiError) {
+      // Log error pero no fallar toda la operación
+      // El documento se crea pero queda pendiente de envío
+      logger.error(`[DocumentoService] Error enviando al SII: ${siiError.message}`);
+      
+      // Actualizar estado a error
+      await documentoRepository.update(tenantId, documento.id, {
+        estadoSII: 'ERROR',
+      });
+    }
+  }
+
+  return documento;
 };
 
 const updateDocumento = async (tenantId, id, data) => {

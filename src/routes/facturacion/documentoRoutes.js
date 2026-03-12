@@ -10,7 +10,6 @@ router.post('/sync', requireRole('dueño', 'administrador'), documentoController
 router.get('/', requireRole('dueño', 'administrador', 'trabajador', 'contador'), documentoController.getAllDocumentos);
 router.get('/:id', requireRole('dueño', 'administrador', 'trabajador', 'contador'), documentoController.getDocumentoById);
 router.get('/:id/pdf', requireRole('dueño', 'administrador', 'trabajador', 'contador'), documentoController.getDocumentoPdf);
-router.get('/:id/xml', requireRole('dueño', 'administrador', 'trabajador', 'contador'), documentoController.getDocumentoXml);
 
 router.post('/', requireRole('dueño', 'administrador', 'trabajador'), documentoController.createDocumento);
 router.put('/:id', requireRole('dueño', 'administrador'), documentoController.updateDocumento);

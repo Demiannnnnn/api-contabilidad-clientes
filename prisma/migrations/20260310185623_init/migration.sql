@@ -11,7 +11,7 @@ CREATE TABLE "User" (
     "passwordHash" TEXT NOT NULL,
     "rut" TEXT,
     "nombre" TEXT,
-    "rol" TEXT NOT NULL DEFAULT 'vendedor',
+    "rol" TEXT NOT NULL DEFAULT 'trabajador',
     "permisos" TEXT NOT NULL DEFAULT '{}',
     "activo" BOOLEAN NOT NULL DEFAULT true,
     "requiereAutorizacion" BOOLEAN NOT NULL DEFAULT false,
@@ -27,7 +27,10 @@ CREATE TABLE "ContadorCliente" (
     "id" SERIAL NOT NULL,
     "contadorId" INTEGER NOT NULL,
     "clienteId" INTEGER NOT NULL,
+    "estado" TEXT NOT NULL DEFAULT 'pendiente',
+    "solicitadoPor" INTEGER NOT NULL,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
 
     CONSTRAINT "ContadorCliente_pkey" PRIMARY KEY ("id")
 );
@@ -55,7 +58,7 @@ CREATE TABLE "Cliente" (
     "diasCredito" INTEGER NOT NULL DEFAULT 0,
     "limiteCredito" DECIMAL(12,0) NOT NULL DEFAULT 0,
     "descuentoAutomatico" DECIMAL(5,2) NOT NULL DEFAULT 0,
-    "vendedorId" INTEGER,
+    "trabajadorId" INTEGER,
     "zona" TEXT,
     "listaPrecios" TEXT NOT NULL DEFAULT 'normal',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -179,9 +182,6 @@ CREATE TABLE "Licence" (
 
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
-
--- CreateIndex
-CREATE UNIQUE INDEX "ContadorCliente_clienteId_key" ON "ContadorCliente"("clienteId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "ContadorCliente_contadorId_clienteId_key" ON "ContadorCliente"("contadorId", "clienteId");

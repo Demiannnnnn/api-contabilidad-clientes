@@ -77,6 +77,7 @@ server.get('/', (req, res) => {
 const authRoutes = require('./routes/core/authRoutes');
 const tenantRoutes = require('./routes/core/tenantRoutes');
 const userRoutes = require('./routes/core/userRoutes');
+const vinculacionRoutes = require('./routes/core/vinculacionRoutes');
 // Facturación
 const clienteRoutes = require('./routes/facturacion/clienteRoutes');
 const productoRoutes = require('./routes/facturacion/productoRoutes');
@@ -97,6 +98,7 @@ const backupRoutes = require('./routes/sistema/backupRoutes');
 server.use('/api/auth', authRoutes);
 server.use('/api/tenant', tenantRoutes);
 server.use('/api/users', userRoutes);
+server.use('/api/vinculaciones', vinculacionRoutes);
 server.use('/api/clientes', clienteRoutes);
 server.use('/api/productos', productoRoutes);
 server.use('/api/trabajadores', trabajadorRoutes);

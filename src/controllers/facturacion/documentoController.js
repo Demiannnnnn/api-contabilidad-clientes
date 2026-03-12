@@ -89,20 +89,13 @@ const getDocumentoPdf = async (req, res) => {
   }
 };
 
-const getDocumentoXml = async (req, res) => {
-  try {
-    const doc = await documentoService.getDocumento(req.tenantId, req.params.id);
-    if (!doc.xmlContent) {
-      return res.status(404).json({ success: false, error: 'XML no disponible' });
-    }
-    res.set('Content-Type', 'application/xml');
-    res.send(doc.xmlContent);
-  } catch (error) {
-    res.status(error.status || 500).json({ success: false, error: error.message });
-  }
-};
-
 module.exports = {
-  getAllDocumentos, getDocumentoById, createDocumento, updateDocumento,
-  cambiarEstado, deleteDocumento, syncDocumentos, getDocumentoPdf, getDocumentoXml
+  getAllDocumentos,
+  getDocumentoById,
+  createDocumento,
+  updateDocumento,
+  cambiarEstado,
+  deleteDocumento,
+  syncDocumentos,
+  getDocumentoPdf,
 };

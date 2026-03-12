@@ -96,10 +96,70 @@ function userScope(req, res, next) {
   next();
 }
 
+// ============================================
+// Validate Machine Access — ensures user belongs to machineId
+// ============================================
+async function validateMachineAccess(req, res, next) {
+  if (!req.user || !req.user.machineId) {
+    // No machineId in token, skip validation (backward compatibility)
+    return next();
+  }
+
+  try {
+    const binding = await prisma.machineBinding.findUnique({
+      where: { machineId: req.user.machineId },
+    });
+
+    if (!binding) {
+      return res.status(403).json({
+        success: false,
+        error: 'Instancia no vinculada',
+        code: 'MACHINE_NOT_BOUND',
+      });
+    }
+
+    if (!binding.activo) {
+      return res.status(403).json({
+        success: false,
+        error: 'Instancia desactivada',
+        code: 'MACHINE_BINDING_INACTIVE',
+      });
+    }
+
+    // Verificar que el usuario del token pertenece a esta máquina
+    const user = await prisma.user.findUnique({
+      where: { id: req.user.id },
+      select: { id: true, duenoId: true },
+    });
+
+    if (!user) {
+      return res.status(401).json({ success: false, error: 'Usuario no encontrado' });
+    }
+
+    const perteneceAMaquina =
+      user.id === binding.ownerId ||
+      user.duenoId === binding.ownerId;
+
+    if (!perteneceAMaquina) {
+      return res.status(403).json({
+        success: false,
+        error: 'No autorizado para esta instancia',
+        code: 'USER_NOT_AUTHORIZED_FOR_MACHINE',
+      });
+    }
+
+    next();
+  } catch (err) {
+    console.error('Machine access validation error:', err);
+    return res.status(500).json({ success: false, error: 'Error validando acceso' });
+  }
+}
+
 module.exports = {
   authenticate,
   requireRole,
   requirePermission,
   userScope,
   tenantScope: userScope, // backward compat alias
+  validateMachineAccess,
 };
