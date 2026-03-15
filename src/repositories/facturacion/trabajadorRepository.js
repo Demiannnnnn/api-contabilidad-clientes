@@ -23,6 +23,10 @@ const findByEmail = async (tenantId, email) => {
   return prisma.trabajador.findFirst({ where: { userId: tenantId, email } });
 };
 
+const findByRut = async (tenantId, rut) => {
+  return prisma.trabajador.findFirst({ where: { userId: tenantId, rut } });
+};
+
 const search = async (tenantId, query) => {
   return prisma.trabajador.findMany({
     where: {
@@ -53,4 +57,4 @@ const remove = async (tenantId, id) => {
   return prisma.trabajador.delete({ where: { id } });
 };
 
-module.exports = { findAll, countAll, findById, findByEmail, search, create, update, remove };
+module.exports = { findAll, countAll, findById, findByEmail, findByRut, search, create, update, remove };

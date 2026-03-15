@@ -270,13 +270,15 @@ model Trabajador{
   nombre      String
   rut         String
   cargo       String?
-  email       String?
+  email       String
+  passwordHash String
   activo      Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   documentos Documento[]
 
   @@unique([userId, rut])
+  @@unique([userId, email])
 }
 
 //Categoria

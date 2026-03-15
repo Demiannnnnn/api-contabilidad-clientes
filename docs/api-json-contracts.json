@@ -1,0 +1,654 @@
+{
+  "meta": {
+    "project": "Server-Sistema-Contabiliadad-Clientes",
+    "generatedAt": "2026-03-14",
+    "sourceOfTruth": [
+      "src/routes/**/*.js",
+      "src/controllers/**/*.js",
+      "src/services/**/*.js",
+      "src/services/core/validationService.js"
+    ],
+    "notes": [
+      "Este archivo documenta el JSON esperado por la API en request body y query params relevantes.",
+      "Para rutas GET normalmente no se espera body JSON.",
+      "IDs de modelo en Prisma son Int, aunque algunos schemas Zod validan UUID en ciertos campos (ver warnings)."
+    ]
+  },
+  "globalRules": {
+    "contentType": "application/json",
+    "auth": {
+      "bearerHeader": "Authorization: Bearer <accessToken>",
+      "requiredOn": "Todas las rutas /api/* excepto /api/auth/register, /api/auth/login, /api/auth/refresh, /api/flow/webhook, /api/flow/return"
+    },
+    "pagination": {
+      "query": {
+        "page": {
+          "type": "integer",
+          "default": 1,
+          "min": 1
+        },
+        "limit": {
+          "type": "integer",
+          "default": 20,
+          "min": 1,
+          "max": 100
+        }
+      }
+    },
+    "rut": {
+      "format": "12345678-9",
+      "acceptedInput": "Con o sin puntos/espacios; se limpia antes de validar",
+      "validation": "Modulo 11"
+    }
+  },
+  "reusableSchemas": {
+    "registerSchema": {
+      "required": [
+        "email",
+        "password",
+        "rut",
+        "nombreOrName"
+      ],
+      "fields": {
+        "email": { "type": "string", "format": "email" },
+        "password": { "type": "string", "minLength": 8 },
+        "rut": { "type": "string", "format": "RUT chileno valido" },
+        "name": { "type": "string", "minLength": 1, "optional": true },
+        "razon_social": { "type": "string", "optional": true },
+        "giro": { "type": "string", "optional": true },
+        "machineId": { "type": "string", "optional": true }
+      },
+      "conditions": [
+        "Debe venir al menos uno entre nombre y name",
+        "Si machineId existe y ya esta vinculado a otro usuario, responde 409"
+      ]
+    },
+    "loginSchema": {
+      "required": ["email", "password"],
+      "fields": {
+        "email": { "type": "string", "format": "email" },
+        "password": { "type": "string", "minLength": 1 },
+        "machineId": { "type": "string", "optional": true }
+      }
+    },
+    "changePasswordSchema": {
+      "required": ["oldPassword", "newPassword"],
+      "fields": {
+        "oldPassword": { "type": "string", "minLength": 1 },
+        "newPassword": { "type": "string", "minLength": 8 }
+      }
+    },
+    "tenantUpdateSchema": {
+      "required": [],
+      "fields": {
+        "razon_social": { "type": "string", "minLength": 1, "optional": true },
+        "nombre_fantasia": { "type": "string", "optional": true },
+        "giro": { "type": "string", "optional": true },
+        "direccion": { "type": "string", "optional": true },
+        "comuna": { "type": "string", "optional": true },
+        "ciudad": { "type": "string", "optional": true },
+        "region": { "type": "string", "optional": true },
+        "telefono": { "type": "string", "optional": true },
+        "email": { "type": "string", "format": "email", "optional": true }
+      }
+    },
+    "tenantSiiConfigSchema": {
+      "required": [],
+      "fields": {
+        "resolucion_sii": { "type": "string", "optional": true },
+        "numero_resolucion": { "type": "string", "optional": true },
+        "fecha_resolucion": { "type": "string", "optional": true },
+        "ambiente_sii": { "type": "enum", "values": ["certificacion", "produccion"], "optional": true }
+      }
+    },
+    "createUserSchema": {
+      "required": ["email", "password", "nombre"],
+      "fields": {
+        "email": { "type": "string", "format": "email" },
+        "password": { "type": "string", "minLength": 8 },
+        "nombre": { "type": "string", "minLength": 1 },
+        "rut": { "type": "string", "format": "RUT", "optional": true },
+        "rol": { "type": "enum", "values": ["administrador", "trabajador", "cajero", "contador"], "default": "trabajador" },
+        "permisos": { "type": "object", "optional": true }
+      }
+    },
+    "updateUserSchema": {
+      "required": [],
+      "fields": {
+        "email": { "type": "string", "format": "email", "optional": true },
+        "nombre": { "type": "string", "minLength": 1, "optional": true },
+        "rut": { "type": "string", "format": "RUT", "optional": true },
+        "rol": { "type": "enum", "values": ["administrador", "trabajador", "cajero", "contador"], "optional": true },
+        "permisos": { "type": "object", "optional": true }
+      }
+    },
+    "clienteSchema": {
+      "required": ["rut", "razonSocial"],
+      "fields": {
+        "rut": { "type": "string", "format": "RUT" },
+        "razonSocial": { "type": "string", "minLength": 1 },
+        "nombreFantasia": { "type": "string", "optional": true },
+        "giro": { "type": "string", "optional": true },
+        "direccion": { "type": "string", "optional": true },
+        "region": { "type": "string", "optional": true },
+        "comuna": { "type": "string", "optional": true },
+        "ciudad": { "type": "string", "optional": true },
+        "telefono": { "type": "string", "optional": true },
+        "email": { "type": "string", "format": "email|empty", "optional": true },
+        "tipoDocumento": { "type": "string", "optional": true },
+        "contactoNombre": { "type": "string", "optional": true },
+        "contactoCargo": { "type": "string", "optional": true },
+        "contactoEmail": { "type": "string", "format": "email|empty", "optional": true },
+        "contactoTelefono": { "type": "string", "optional": true },
+        "condicionPago": { "type": "string", "optional": true },
+        "diasCredito": { "type": "integer", "minimum": 0, "optional": true },
+        "limiteCredito": { "type": "number", "minimum": 0, "optional": true },
+        "descuentoAutomatico": { "type": "number", "minimum": 0, "maximum": 100, "optional": true },
+        "zona": { "type": "string", "optional": true },
+        "listaPrecios": { "type": "string", "optional": true },
+        "localId": { "type": "integer", "optional": true }
+      }
+    },
+    "productoSchema": {
+      "required": ["codigo", "nombre", "precio"],
+      "fields": {
+        "codigo": { "type": "string", "minLength": 1 },
+        "nombre": { "type": "string", "minLength": 1 },
+        "descripcion": { "type": "string", "optional": true },
+        "precio": { "type": "number", "minimum": 0 },
+        "stock": { "type": "integer", "minimum": 0, "optional": true },
+        "exento": { "type": "boolean|number", "optional": true },
+        "activo": { "type": "boolean|number", "optional": true },
+        "categoria": { "type": "string", "optional": true },
+        "categoriaId": { "type": "integer", "optional": true },
+        "unidadMedida": { "type": "string", "optional": true },
+        "unidad_medida": { "type": "string", "optional": true },
+        "stockMinimo": { "type": "integer", "minimum": 0, "optional": true },
+        "stock_minimo": { "type": "integer", "minimum": 0, "optional": true },
+        "stockMaximo": { "type": "integer|null", "minimum": 0, "optional": true },
+        "stock_maximo": { "type": "integer|null", "minimum": 0, "optional": true },
+        "costo": { "type": "number|null", "minimum": 0, "optional": true },
+        "localId": { "type": "integer", "optional": true },
+        "local_id": { "type": "integer", "optional": true },
+        "syncHash": { "type": "string", "optional": true },
+        "syncStatus": { "type": "string", "optional": true }
+      },
+      "conditions": [
+        "Acepta camelCase y snake_case para varios campos",
+        "codigo debe ser unico por usuario"
+      ]
+    },
+    "trabajadorSchema": {
+      "required": ["nombre", "apellido"],
+      "fields": {
+        "email": { "type": "string", "format": "email|empty", "optional": true },
+        "password": { "type": "string", "minLength": 8, "optional": true },
+        "nombre": { "type": "string", "minLength": 1 },
+        "apellido": { "type": "string", "minLength": 1 },
+        "telefono": { "type": "string", "optional": true },
+        "comision": { "type": "number", "minimum": 0, "maximum": 100, "optional": true },
+        "local_id": { "type": "integer", "optional": true },
+        "rut": { "type": "string", "optional": true },
+        "cargo": { "type": "string", "optional": true },
+        "activo": { "type": "boolean", "optional": true }
+      }
+    },
+    "documentoSchema": {
+      "required": ["tipo_documento", "folio", "fecha_emision", "subtotal", "iva", "total", "items"],
+      "fields": {
+        "tipo_documento": { "type": "integer", "allowedValues": [33, 34, 39, 41, 52, 56, 61] },
+        "folio": { "type": "integer", "minimum": 1 },
+        "cliente_id": { "type": "string(uuid)", "optional": true },
+        "cliente_rut": { "type": "string", "optional": true },
+        "cliente_razon_social": { "type": "string", "optional": true },
+        "cliente_giro": { "type": "string", "optional": true },
+        "cliente_direccion": { "type": "string", "optional": true },
+        "cliente_comuna": { "type": "string", "optional": true },
+        "fecha_emision": { "type": "string(date)" },
+        "fecha_vencimiento": { "type": "string(date)", "optional": true },
+        "subtotal": { "type": "number" },
+        "monto_exento": { "type": "number", "optional": true },
+        "descuento_global": { "type": "number", "optional": true },
+        "iva": { "type": "number" },
+        "total": { "type": "number" },
+        "forma_pago": { "type": "string", "optional": true },
+        "forma_pago_detalle": { "type": "string", "optional": true },
+        "condiciones_pago": { "type": "string", "optional": true },
+        "orden_compra": { "type": "string", "optional": true },
+        "trabajador_id": { "type": "string(uuid)", "optional": true },
+        "estado": { "type": "string", "optional": true },
+        "observaciones": { "type": "string", "optional": true },
+        "direccion_despacho": { "type": "string", "optional": true },
+        "fecha_despacho": { "type": "string(date)", "optional": true },
+        "transportista": { "type": "string", "optional": true },
+        "patente": { "type": "string", "optional": true },
+        "items": { "type": "array", "minItems": 1, "items": "documentoItemSchema" },
+        "referencias": { "type": "array", "optional": true, "items": "referenciaSchema" },
+        "local_id": { "type": "integer", "optional": true },
+        "emitir": { "type": "boolean", "optional": true }
+      },
+      "conditions": [
+        "folio unico por tenant + tipo_documento",
+        "si emitir=true o estado=emitida, intenta enviar al SII"
+      ]
+    },
+    "documentoItemSchema": {
+      "required": ["numero_linea", "descripcion", "cantidad", "precio_unitario", "monto_item"],
+      "fields": {
+        "numero_linea": { "type": "integer", "minimum": 1 },
+        "producto_id": { "type": "string(uuid)", "optional": true },
+        "codigo_item": { "type": "string", "optional": true },
+        "descripcion": { "type": "string", "minLength": 1 },
+        "cantidad": { "type": "number", "exclusiveMinimum": 0 },
+        "unidad": { "type": "string", "optional": true },
+        "precio_unitario": { "type": "number", "minimum": 0 },
+        "descuento": { "type": "number", "minimum": 0, "maximum": 100, "optional": true },
+        "descuento_monto": { "type": "number", "minimum": 0, "optional": true },
+        "monto_item": { "type": "number", "minimum": 0 },
+        "exento": { "type": "boolean", "optional": true }
+      }
+    },
+    "referenciaSchema": {
+      "required": ["tipo_documento_referencia", "folio_referencia", "fecha_referencia", "razon_referencia"],
+      "fields": {
+        "tipo_documento_referencia": { "type": "integer" },
+        "folio_referencia": { "type": "integer" },
+        "fecha_referencia": { "type": "string(date)" },
+        "razon_referencia": { "type": "string", "minLength": 1 },
+        "codigo_referencia": { "type": "integer", "optional": true },
+        "detalle": { "type": "string", "optional": true }
+      }
+    },
+    "documentoUpdateSchema": {
+      "required": [],
+      "fields": {
+        "estado": { "type": "string", "optional": true },
+        "forma_pago": { "type": "string", "optional": true },
+        "forma_pago_detalle": { "type": "string", "optional": true },
+        "condiciones_pago": { "type": "string", "optional": true },
+        "observaciones": { "type": "string", "optional": true },
+        "fecha_vencimiento": { "type": "string(date)", "optional": true },
+        "items": { "type": "array", "optional": true, "items": "documentoItemSchema" },
+        "referencias": { "type": "array", "optional": true, "items": "referenciaSchema" }
+      },
+      "conditions": [
+        "No se puede actualizar si estado actual es emitida, anulada o rechazada"
+      ]
+    },
+    "pagoSchema": {
+      "required": ["documento_id", "monto", "fecha_pago", "forma_pago"],
+      "fields": {
+        "documento_id": { "type": "string(uuid)" },
+        "monto": { "type": "number", "minimum": 0.01 },
+        "fecha_pago": { "type": "string(date)" },
+        "forma_pago": { "type": "string", "minLength": 1 },
+        "referencia": { "type": "string", "optional": true },
+        "observaciones": { "type": "string", "optional": true },
+        "local_id": { "type": "integer", "optional": true }
+      },
+      "conditions": [
+        "No permite pagar documentos en estado anulada, rechazada o borrador",
+        "monto no puede exceder saldo pendiente"
+      ]
+    },
+    "syncPushSchema": {
+      "required": ["operations"],
+      "fields": {
+        "operations": {
+          "type": "array",
+          "items": {
+            "required": ["entity_type", "entity_local_id", "operation", "payload"],
+            "fields": {
+              "id": { "type": "string", "optional": true },
+              "entity_type": { "type": "string" },
+              "entity_local_id": { "type": "integer" },
+              "operation": { "type": "enum", "values": ["create", "update", "delete"] },
+              "payload": { "type": "object" },
+              "queued_at": { "type": "string(date)", "optional": true }
+            }
+          }
+        }
+      }
+    },
+    "licenciaActivateBody": {
+      "required": ["type", "expiresAt"],
+      "fields": {
+        "type": { "type": "string" },
+        "expiresAt": { "type": "string(date)" },
+        "notes": { "type": "string", "optional": true }
+      }
+    }
+  },
+  "endpointContracts": [
+    {
+      "group": "Auth",
+      "endpoints": [
+        { "method": "POST", "path": "/api/auth/register", "bodySchemaRef": "registerSchema" },
+        { "method": "POST", "path": "/api/auth/login", "bodySchemaRef": "loginSchema" },
+        {
+          "method": "POST",
+          "path": "/api/auth/refresh",
+          "body": {
+            "required": ["refreshToken"],
+            "fields": { "refreshToken": { "type": "string" } }
+          }
+        },
+        { "method": "POST", "path": "/api/auth/logout", "body": { "required": [], "fields": {} } },
+        { "method": "GET", "path": "/api/auth/me", "body": null },
+        { "method": "POST", "path": "/api/auth/change-password", "bodySchemaRef": "changePasswordSchema" }
+      ]
+    },
+    {
+      "group": "Tenant",
+      "endpoints": [
+        { "method": "GET", "path": "/api/tenant", "body": null },
+        { "method": "PUT", "path": "/api/tenant", "bodySchemaRef": "tenantUpdateSchema" },
+        { "method": "PUT", "path": "/api/tenant/sii-config", "bodySchemaRef": "tenantSiiConfigSchema" },
+        { "method": "POST", "path": "/api/tenant/upload-certificado", "body": { "required": [], "fields": {}, "status": 501 } },
+        { "method": "POST", "path": "/api/tenant/upload-logo", "body": { "required": [], "fields": {}, "status": 501 } }
+      ]
+    },
+    {
+      "group": "Users",
+      "endpoints": [
+        { "method": "GET", "path": "/api/users", "query": { "page": "integer", "limit": "integer" } },
+        { "method": "GET", "path": "/api/users/:id", "body": null },
+        { "method": "POST", "path": "/api/users", "bodySchemaRef": "createUserSchema" },
+        { "method": "PUT", "path": "/api/users/:id", "bodySchemaRef": "updateUserSchema" },
+        { "method": "PATCH", "path": "/api/users/:id/toggle-active", "body": { "required": [], "fields": {} } },
+        {
+          "method": "PATCH",
+          "path": "/api/users/:id/password",
+          "body": {
+            "required": ["password"],
+            "fields": {
+              "password": { "type": "string", "minLength": 8 }
+            }
+          }
+        },
+        {
+          "method": "PATCH",
+          "path": "/api/users/:id/permissions",
+          "body": {
+            "required": ["permisos"],
+            "fields": {
+              "permisos": { "type": "object" }
+            }
+          }
+        },
+        { "method": "DELETE", "path": "/api/users/:id", "body": null }
+      ]
+    },
+    {
+      "group": "Vinculaciones",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/vinculaciones/buscar",
+          "query": {
+            "q": { "type": "string", "minLength": 2 }
+          }
+        },
+        {
+          "method": "POST",
+          "path": "/api/vinculaciones/solicitud",
+          "body": {
+            "required": ["targetUserId"],
+            "fields": { "targetUserId": { "type": "integer|string(parseInt)", "minimum": 1 } }
+          }
+        },
+        { "method": "GET", "path": "/api/vinculaciones/pendientes", "body": null },
+        { "method": "GET", "path": "/api/vinculaciones/enviadas", "body": null },
+        { "method": "PUT", "path": "/api/vinculaciones/:id/aceptar", "body": null },
+        { "method": "PUT", "path": "/api/vinculaciones/:id/rechazar", "body": null },
+        { "method": "GET", "path": "/api/vinculaciones/activas", "body": null },
+        { "method": "DELETE", "path": "/api/vinculaciones/:id", "body": null }
+      ]
+    },
+    {
+      "group": "Clientes",
+      "endpoints": [
+        { "method": "GET", "path": "/api/clientes", "query": { "page": "integer", "limit": "integer" } },
+        { "method": "GET", "path": "/api/clientes/search", "query": { "q": { "type": "string", "minLength": 2 } } },
+        { "method": "POST", "path": "/api/clientes", "bodySchemaRef": "clienteSchema" },
+        { "method": "GET", "path": "/api/clientes/:id", "body": null },
+        { "method": "GET", "path": "/api/clientes/:id/estado-cuenta", "body": null },
+        { "method": "PUT", "path": "/api/clientes/:id", "body": { "sameAs": "clienteSchema", "allFieldsOptional": true } },
+        { "method": "DELETE", "path": "/api/clientes/:id", "body": null },
+        {
+          "method": "POST",
+          "path": "/api/clientes/sync",
+          "body": {
+            "required": ["clientes"],
+            "fields": {
+              "clientes": { "type": "array", "items": "clienteSchema|clienteUpdate" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "Productos",
+      "endpoints": [
+        { "method": "GET", "path": "/api/productos", "query": { "page": "integer", "limit": "integer" } },
+        { "method": "GET", "path": "/api/productos/search", "query": { "q": { "type": "string", "minLength": 2 } } },
+        { "method": "POST", "path": "/api/productos", "bodySchemaRef": "productoSchema" },
+        { "method": "GET", "path": "/api/productos/:id", "body": null },
+        { "method": "PUT", "path": "/api/productos/:id", "body": { "sameAs": "productoSchema", "allFieldsOptional": true } },
+        {
+          "method": "PATCH",
+          "path": "/api/productos/:id/stock",
+          "body": {
+            "required": ["stock"],
+            "fields": {
+              "stock": { "type": "number", "minimum": 0 }
+            }
+          }
+        },
+        { "method": "DELETE", "path": "/api/productos/:id", "body": null },
+        {
+          "method": "POST",
+          "path": "/api/productos/sync",
+          "body": {
+            "required": ["productos"],
+            "fields": {
+              "productos": { "type": "array", "items": "productoSchema|productoUpdate" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "Trabajadores",
+      "endpoints": [
+        { "method": "GET", "path": "/api/trabajadores", "query": { "page": "integer", "limit": "integer", "activo": "boolean-string(optional)" } },
+        { "method": "GET", "path": "/api/trabajadores/search", "query": { "q": { "type": "string", "minLength": 2 } } },
+        { "method": "POST", "path": "/api/trabajadores", "bodySchemaRef": "trabajadorSchema" },
+        { "method": "GET", "path": "/api/trabajadores/:id", "body": null },
+        { "method": "PUT", "path": "/api/trabajadores/:id", "body": { "sameAs": "trabajadorSchema", "allFieldsOptional": true } },
+        { "method": "PATCH", "path": "/api/trabajadores/:id/toggle-active", "body": null },
+        { "method": "DELETE", "path": "/api/trabajadores/:id", "body": null }
+      ]
+    },
+    {
+      "group": "Documentos",
+      "endpoints": [
+        {
+          "method": "GET",
+          "path": "/api/documentos",
+          "query": {
+            "page": "integer",
+            "limit": "integer",
+            "tipo_documento": "integer(optional)",
+            "estado": "string(optional)",
+            "cliente_id": "id(optional)",
+            "trabajador_id": "id(optional)",
+            "desde": "date(optional)",
+            "hasta": "date(optional)"
+          }
+        },
+        { "method": "GET", "path": "/api/documentos/:id", "body": null },
+        { "method": "GET", "path": "/api/documentos/:id/pdf", "body": null },
+        { "method": "POST", "path": "/api/documentos", "bodySchemaRef": "documentoSchema" },
+        { "method": "PUT", "path": "/api/documentos/:id", "bodySchemaRef": "documentoUpdateSchema" },
+        {
+          "method": "PATCH",
+          "path": "/api/documentos/:id/estado",
+          "body": {
+            "required": ["estado"],
+            "fields": {
+              "estado": {
+                "type": "enum",
+                "values": ["borrador", "pendiente", "emitida", "pagada", "parcial", "anulada", "rechazada"]
+              }
+            },
+            "conditions": [
+              "Transiciones permitidas: borrador->pendiente|anulada, pendiente->emitida|anulada, emitida->pagada|parcial|anulada, parcial->pagada|anulada, pagada->anulada, rechazada->pendiente"
+            ]
+          }
+        },
+        { "method": "DELETE", "path": "/api/documentos/:id", "body": null },
+        {
+          "method": "POST",
+          "path": "/api/documentos/sync",
+          "body": {
+            "required": ["documentos"],
+            "fields": {
+              "documentos": { "type": "array", "items": "documentoSchema|documentoUpdate-like" }
+            }
+          }
+        }
+      ]
+    },
+    {
+      "group": "Folios",
+      "endpoints": [
+        { "method": "GET", "path": "/api/folios", "body": null },
+        {
+          "method": "POST",
+          "path": "/api/folios/upload-caf",
+          "body": {
+            "required": ["tipo_documento", "desde", "hasta", "caf_xml"],
+            "fields": {
+              "tipo_documento": { "type": "integer" },
+              "desde": { "type": "integer" },
+              "hasta": { "type": "integer" },
+              "caf_xml": { "type": "string(xml)" }
+            },
+            "conditions": ["desde no puede ser mayor que hasta"]
+          }
+        },
+        { "method": "GET", "path": "/api/folios/:tipo/next", "body": null }
+      ]
+    },
+    {
+      "group": "Pagos",
+      "endpoints": [
+        { "method": "GET", "path": "/api/pagos/cuentas-por-cobrar", "body": null },
+        {
+          "method": "POST",
+          "path": "/api/pagos/sync",
+          "body": {
+            "required": ["pagos"],
+            "fields": {
+              "pagos": { "type": "array", "items": "pagoSchema" }
+            }
+          }
+        },
+        { "method": "GET", "path": "/api/pagos/documento/:docId", "body": null },
+        { "method": "POST", "path": "/api/pagos", "bodySchemaRef": "pagoSchema" },
+        { "method": "DELETE", "path": "/api/pagos/:id", "body": null }
+      ]
+    },
+    {
+      "group": "Flow",
+      "endpoints": [
+        {
+          "method": "POST",
+          "path": "/api/flow/create-order",
+          "body": {
+            "required": ["plan"],
+            "fields": {
+              "plan": { "type": "enum", "values": ["monthly", "yearly"] },
+              "email": { "type": "string", "format": "email", "optional": true }
+            }
+          }
+        },
+        { "method": "GET", "path": "/api/flow/status/:orderId", "body": null },
+        {
+          "method": "POST",
+          "path": "/api/flow/webhook",
+          "body": {
+            "required": ["token"],
+            "fields": {
+              "token": { "type": "string" }
+            }
+          }
+        },
+        { "method": "GET", "path": "/api/flow/return", "body": null }
+      ]
+    },
+    {
+      "group": "Sync",
+      "endpoints": [
+        { "method": "POST", "path": "/api/sync/push", "bodySchemaRef": "syncPushSchema" },
+        { "method": "GET", "path": "/api/sync/pull", "query": { "since": "date(optional)" } },
+        {
+          "method": "POST",
+          "path": "/api/sync/resolve-conflict",
+          "body": {
+            "required": ["entity_type", "entity_id", "resolution"],
+            "fields": {
+              "entity_type": { "type": "string" },
+              "entity_id": { "type": "integer" },
+              "resolution": { "type": "enum", "values": ["keep_server", "keep_local", "merge"] },
+              "payload": { "type": "object", "optional": true }
+            }
+          }
+        },
+        { "method": "GET", "path": "/api/sync/status", "body": null }
+      ]
+    },
+    {
+      "group": "Reportes",
+      "endpoints": [
+        { "method": "GET", "path": "/api/reportes/ventas", "query": { "desde": "date(required)", "hasta": "date(required)" } },
+        { "method": "GET", "path": "/api/reportes/tributario", "query": { "periodo": "string(required, YYYY-MM)" } },
+        { "method": "GET", "path": "/api/reportes/productos/mas-vendidos", "query": { "limit": "integer(optional)", "desde": "date(optional)", "hasta": "date(optional)" } },
+        { "method": "GET", "path": "/api/reportes/clientes/ranking", "query": { "limit": "integer(optional)", "desde": "date(optional)", "hasta": "date(optional)" } },
+        { "method": "GET", "path": "/api/reportes/caja", "query": { "fecha": "string(required, YYYY-MM-DD)" } },
+        { "method": "GET", "path": "/api/reportes/dashboard", "body": null }
+      ]
+    },
+    {
+      "group": "SII",
+      "endpoints": [
+        { "method": "GET", "path": "/api/sii/documento/:documentoId/estado", "body": null },
+        { "method": "POST", "path": "/api/sii/documento/:documentoId/reenviar", "body": { "required": [], "fields": {} } },
+        { "method": "GET", "path": "/api/sii/logs", "body": null }
+      ]
+    },
+    {
+      "group": "Licencias",
+      "endpoints": [
+        { "method": "GET", "path": "/api/licencias/status", "body": null },
+        { "method": "POST", "path": "/api/licencias/activate", "bodySchemaRef": "licenciaActivateBody" },
+        { "method": "POST", "path": "/api/licencias/cancel", "body": { "required": [], "fields": {} } }
+      ]
+    },
+    {
+      "group": "Backups",
+      "endpoints": [
+        { "method": "POST", "path": "/api/backups/upload", "body": { "required": [], "fields": {}, "note": "stub: implementacion pendiente" } },
+        { "method": "GET", "path": "/api/backups", "body": null },
+        { "method": "GET", "path": "/api/backups/:id/download", "body": null },
+        { "method": "DELETE", "path": "/api/backups/:id", "body": null }
+      ]
+    }
+  ],
+  "warnings": [
+    "Inconsistencia detectada: varios schemas usan string(uuid) para IDs que en Prisma son Int (ej: documento_id, cliente_id, trabajador_id, producto_id).",
+    "En trabajadorSchema se exige apellido, pero el modelo Trabajador en Prisma no tiene campo apellido; se usa nombre/cargo/rut/email/activo.",
+    "En documentoUpdateSchema de validationService no se validan items/referencias, pero documentoService intenta procesarlos si existen."
+  ]
+}

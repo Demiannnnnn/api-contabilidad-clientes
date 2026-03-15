@@ -10,20 +10,15 @@ const rutSchema = z.string()
 
 // === Auth Schemas ===
 const registerSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.email('Email inválido'),
   password: z.string().min(8, 'Mínimo 8 caracteres'),
   rut: rutSchema,
-  nombre: z.string().min(1, 'Nombre requerido').optional(),
-  name: z.string().min(1, 'Nombre requerido').optional(),
+  name: z.string().min(1, 'Nombre requerido'),
   razon_social: z.string().optional(),
   giro: z.string().optional(),
   machineId: z.string().optional(),
 }).transform((data) => {
-  const nombre = data.nombre || data.name;
-  if (!nombre) {
-    throw new z.ZodError([{ code: 'custom', path: ['nombre'], message: 'Nombre requerido' }]);
-  }
-  return { ...data, nombre, name: undefined };
+  return { ...data, nombre: data.name, name: undefined };
 });
 
 const loginSchema = z.object({
@@ -189,7 +184,11 @@ const productoUpdateSchema = z.object({
 const trabajadorSchema = z.object({
   nombre: z.string().min(1, 'Nombre requerido'),
   apellido: z.string().min(1, 'Apellido requerido'),
-  email: z.union([z.string().email(), z.literal('')]).optional(),
+  rut: rutSchema,
+  cargo: z.string().optional(),
+  email: z.string().email('Email inválido'),
+  password: z.string().min(8, 'Mínimo 8 caracteres'),
+  activo: z.boolean().optional(),
   telefono: z.string().optional(),
   comision: z.number().min(0).max(100).optional(),
   local_id: z.number().int().optional(),

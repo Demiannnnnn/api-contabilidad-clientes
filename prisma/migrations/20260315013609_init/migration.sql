@@ -1,9 +1,3 @@
--- CreateEnum
-CREATE TYPE "TipoDocumento" AS ENUM ('FACTURA_ELECTRONICA', 'FACTURA_EXENTA', 'BOLETA_ELECTRONICA', 'BOLETA_EXENTA', 'NOTA_CREDITO', 'NOTA_DEBITO', 'GUIA_DESPACHO');
-
--- CreateEnum
-CREATE TYPE "EstadoDocumento" AS ENUM ('BORRADOR', 'EMITIDO', 'ANULADO');
-
 -- CreateTable
 CREATE TABLE "User" (
     "id" SERIAL NOT NULL,
@@ -18,6 +12,7 @@ CREATE TABLE "User" (
     "ultimoAcceso" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
+    "duenoId" INTEGER,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -97,14 +92,39 @@ CREATE TABLE "Producto" (
 CREATE TABLE "Documento" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
-    "tipo" "TipoDocumento" NOT NULL,
-    "numero" INTEGER NOT NULL,
-    "fecha" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "localId" INTEGER,
+    "tipoDocumento" INTEGER NOT NULL,
+    "folio" INTEGER NOT NULL,
+    "fechaEmision" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "fechaVencimiento" TIMESTAMP(3),
     "clienteId" INTEGER,
-    "neto" DECIMAL(10,0) NOT NULL,
-    "iva" DECIMAL(10,0) NOT NULL,
-    "total" DECIMAL(10,0) NOT NULL,
-    "estado" "EstadoDocumento" NOT NULL DEFAULT 'EMITIDO',
+    "clienteRut" TEXT,
+    "clienteRazonSocial" TEXT,
+    "clienteGiro" TEXT,
+    "clienteDireccion" TEXT,
+    "clienteComuna" TEXT,
+    "subtotal" DECIMAL(12,0) NOT NULL,
+    "montoExento" DECIMAL(12,0) NOT NULL DEFAULT 0,
+    "descuentoGlobal" DECIMAL(12,0) NOT NULL DEFAULT 0,
+    "iva" DECIMAL(12,0) NOT NULL DEFAULT 0,
+    "total" DECIMAL(12,0) NOT NULL,
+    "formaPago" TEXT NOT NULL DEFAULT 'contado',
+    "formaPagoDetalle" TEXT,
+    "condicionesPago" TEXT,
+    "ordenCompra" TEXT,
+    "direccionDespacho" TEXT,
+    "fechaDespacho" TIMESTAMP(3),
+    "transportista" TEXT,
+    "patente" TEXT,
+    "estado" TEXT NOT NULL DEFAULT 'pendiente',
+    "observaciones" TEXT,
+    "trackIdSII" TEXT,
+    "estadoSII" TEXT,
+    "fechaEnvioSII" TIMESTAMP(3),
+    "xmlEnviado" TEXT,
+    "syncStatus" TEXT DEFAULT 'synced',
+    "syncHash" TEXT,
+    "lastSyncedAt" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
     "trabajadorId" INTEGER,
@@ -113,15 +133,36 @@ CREATE TABLE "Documento" (
 );
 
 -- CreateTable
+CREATE TABLE "ReferenciaDocumento" (
+    "id" SERIAL NOT NULL,
+    "documentoId" INTEGER NOT NULL,
+    "tipoDocumentoReferencia" INTEGER NOT NULL,
+    "folioReferencia" INTEGER NOT NULL,
+    "fechaReferencia" TIMESTAMP(3) NOT NULL,
+    "razonReferencia" TEXT NOT NULL,
+    "codigoReferencia" TEXT,
+    "detalle" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "ReferenciaDocumento_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "DocumentoItem" (
     "id" SERIAL NOT NULL,
     "documentoId" INTEGER NOT NULL,
-    "productoId" INTEGER NOT NULL,
+    "numeroLinea" INTEGER NOT NULL,
+    "productoId" INTEGER,
+    "codigoItem" TEXT,
+    "descripcion" TEXT NOT NULL,
     "cantidad" INTEGER NOT NULL,
-    "precio" DECIMAL(10,0) NOT NULL,
-    "descuento" DECIMAL(10,0) NOT NULL DEFAULT 0,
+    "unidad" TEXT NOT NULL DEFAULT 'UN',
+    "precioUnitario" DECIMAL(12,0) NOT NULL,
+    "descuento" DECIMAL(5,2) NOT NULL DEFAULT 0,
+    "descuentoMonto" DECIMAL(12,0) NOT NULL DEFAULT 0,
+    "montoItem" DECIMAL(12,0) NOT NULL,
     "exento" BOOLEAN NOT NULL DEFAULT false,
-    "subtotal" DECIMAL(10,0) NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
 
     CONSTRAINT "DocumentoItem_pkey" PRIMARY KEY ("id")
 );
@@ -133,7 +174,8 @@ CREATE TABLE "Trabajador" (
     "nombre" TEXT NOT NULL,
     "rut" TEXT NOT NULL,
     "cargo" TEXT,
-    "email" TEXT,
+    "email" TEXT NOT NULL,
+    "passwordHash" TEXT NOT NULL,
     "activo" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -180,6 +222,18 @@ CREATE TABLE "Licence" (
     CONSTRAINT "Licence_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "MachineBinding" (
+    "id" SERIAL NOT NULL,
+    "machineId" TEXT NOT NULL,
+    "ownerId" INTEGER NOT NULL,
+    "activo" BOOLEAN NOT NULL DEFAULT true,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "MachineBinding_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -193,10 +247,22 @@ CREATE UNIQUE INDEX "Cliente_userId_rut_key" ON "Cliente"("userId", "rut");
 CREATE UNIQUE INDEX "Producto_userId_codigo_key" ON "Producto"("userId", "codigo");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Documento_userId_tipo_numero_key" ON "Documento"("userId", "tipo", "numero");
+CREATE INDEX "Documento_userId_fechaEmision_idx" ON "Documento"("userId", "fechaEmision");
+
+-- CreateIndex
+CREATE INDEX "Documento_userId_estado_idx" ON "Documento"("userId", "estado");
+
+-- CreateIndex
+CREATE INDEX "Documento_trackIdSII_idx" ON "Documento"("trackIdSII");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Documento_userId_tipoDocumento_folio_key" ON "Documento"("userId", "tipoDocumento", "folio");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Trabajador_userId_rut_key" ON "Trabajador"("userId", "rut");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Trabajador_userId_email_key" ON "Trabajador"("userId", "email");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Categoria_userId_nombre_key" ON "Categoria"("userId", "nombre");
@@ -209,6 +275,12 @@ CREATE UNIQUE INDEX "Licence_userId_key" ON "Licence"("userId");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Licence_licenceKey_key" ON "Licence"("licenceKey");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "MachineBinding_machineId_key" ON "MachineBinding"("machineId");
+
+-- AddForeignKey
+ALTER TABLE "User" ADD CONSTRAINT "User_duenoId_fkey" FOREIGN KEY ("duenoId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ContadorCliente" ADD CONSTRAINT "ContadorCliente_contadorId_fkey" FOREIGN KEY ("contadorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -235,10 +307,13 @@ ALTER TABLE "Documento" ADD CONSTRAINT "Documento_clienteId_fkey" FOREIGN KEY ("
 ALTER TABLE "Documento" ADD CONSTRAINT "Documento_trabajadorId_fkey" FOREIGN KEY ("trabajadorId") REFERENCES "Trabajador"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DocumentoItem" ADD CONSTRAINT "DocumentoItem_documentoId_fkey" FOREIGN KEY ("documentoId") REFERENCES "Documento"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "ReferenciaDocumento" ADD CONSTRAINT "ReferenciaDocumento_documentoId_fkey" FOREIGN KEY ("documentoId") REFERENCES "Documento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
-ALTER TABLE "DocumentoItem" ADD CONSTRAINT "DocumentoItem_productoId_fkey" FOREIGN KEY ("productoId") REFERENCES "Producto"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+ALTER TABLE "DocumentoItem" ADD CONSTRAINT "DocumentoItem_documentoId_fkey" FOREIGN KEY ("documentoId") REFERENCES "Documento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentoItem" ADD CONSTRAINT "DocumentoItem_productoId_fkey" FOREIGN KEY ("productoId") REFERENCES "Producto"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "Trabajador" ADD CONSTRAINT "Trabajador_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -251,3 +326,6 @@ ALTER TABLE "RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY
 
 -- AddForeignKey
 ALTER TABLE "Licence" ADD CONSTRAINT "Licence_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "MachineBinding" ADD CONSTRAINT "MachineBinding_ownerId_fkey" FOREIGN KEY ("ownerId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;

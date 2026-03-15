@@ -1,5 +1,6 @@
 const prisma = require('../../config/database');
 const syncRepository = require('../../repositories/sistema/syncRepository');
+const logger = require('../../utils/logger');
 
 const ENTITY_MODELS = {
   cliente: 'cliente',
@@ -8,37 +9,71 @@ const ENTITY_MODELS = {
   documento: 'documento',
 };
 
+function summarizeOperation(op = {}) {
+  return {
+    entity_type: op.entity_type,
+    mapped_type: op.entity_type === 'vendedor' ? 'trabajador' : op.entity_type,
+    operation: op.operation,
+    local_id: op.entity_local_id,
+    queued_at: op.queued_at || null,
+    payload_keys: op.payload && typeof op.payload === 'object' ? Object.keys(op.payload) : [],
+  };
+}
+
 const push = async (tenantId, operations) => {
   const results = [];
   const conflicts = [];
   const failed = [];
 
+  logger.info(`[SyncService.push] tenant=${tenantId} start operations=${operations.length}`);
+
   for (const op of operations) {
     try {
       const { entity_type, entity_local_id, operation, payload, queued_at } = op;
+      const opSummary = summarizeOperation(op);
+      logger.info(`[SyncService.push] tenant=${tenantId} processing`, opSummary);
 
       // Map vendedor → trabajador
       const mappedType = entity_type === 'vendedor' ? 'trabajador' : entity_type;
 
       if (!ENTITY_MODELS[mappedType]) {
-        failed.push({ local_id: entity_local_id, entity_type, error: `Tipo de entidad desconocido: ${entity_type}` });
+        const reason = `Tipo de entidad desconocido: ${entity_type}`;
+        logger.error(`[SyncService.push] tenant=${tenantId} failed localId=${entity_local_id} reason=${reason}`);
+        failed.push({ local_id: entity_local_id, entity_type, error: reason });
         continue;
       }
 
       try {
         const result = await processOperation(tenantId, mappedType, operation, entity_local_id, payload, queued_at);
+        logger.info(`[SyncService.push] tenant=${tenantId} success localId=${entity_local_id} serverId=${result.id} status=${result.status || 'created'}`);
         results.push({ local_id: entity_local_id, server_id: result.id, entity_type, status: result.status || 'created' });
       } catch (error) {
         if (error.conflict) {
+          logger.error(`[SyncService.push] tenant=${tenantId} conflict localId=${entity_local_id} message=${error.message}`);
           conflicts.push({ local_id: entity_local_id, entity_type, error: error.message, server_version: error.serverVersion });
         } else {
+          logger.error(`[SyncService.push] tenant=${tenantId} failed localId=${entity_local_id} message=${error.message}`);
           failed.push({ local_id: entity_local_id, entity_type, error: error.message });
         }
       }
     } catch (error) {
+      logger.error(`[SyncService.push] tenant=${tenantId} unexpected error message=${error.message}`);
       failed.push({ local_id: op.entity_local_id, entity_type: op.entity_type, error: error.message });
     }
   }
+
+  const statusCounts = results.reduce((acc, item) => {
+    acc[item.status] = (acc[item.status] || 0) + 1;
+    return acc;
+  }, {});
+
+  logger.info(`[SyncService.push] tenant=${tenantId} end`, {
+    total: operations.length,
+    results: results.length,
+    conflicts: conflicts.length,
+    failed: failed.length,
+    statuses: statusCounts,
+  });
 
   return { results, conflicts, failed };
 };
@@ -47,9 +82,12 @@ const processOperation = async (tenantId, entityType, operation, localId, payloa
   const model = prisma[entityType];
   if (!model) throw new Error(`Modelo no encontrado: ${entityType}`);
 
+  logger.debug(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} op=${operation} localId=${localId}`);
+
   if (operation === 'create') {
     const existing = await model.findFirst({ where: { userId: tenantId, localId } });
     if (existing) {
+      logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} already_exists serverId=${existing.id}`);
       return { id: existing.id, status: 'already_exists' };
     }
 
@@ -61,6 +99,7 @@ const processOperation = async (tenantId, entityType, operation, localId, payloa
   if (operation === 'update') {
     let existing = await model.findFirst({ where: { userId: tenantId, localId } });
     if (!existing) {
+      logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} not_found_for_update creating_new`);
       const data = mapPayloadToModel(entityType, tenantId, payload, localId);
       const created = await model.create({ data });
       return { id: created.id, status: 'created' };
@@ -72,11 +111,13 @@ const processOperation = async (tenantId, entityType, operation, localId, payloa
       if (serverUpdated > incomingQueued) {
         const diffMs = serverUpdated - incomingQueued;
         if (diffMs < 5 * 60 * 1000) {
+          logger.error(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} conflict diffMs=${diffMs}`);
           const error = new Error('Conflicto: edición concurrente');
           error.conflict = true;
           error.serverVersion = existing;
           throw error;
         }
+        logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} skipped_stale diffMs=${diffMs}`);
         return { id: existing.id, status: 'skipped_stale' };
       }
     }
@@ -90,7 +131,10 @@ const processOperation = async (tenantId, entityType, operation, localId, payloa
 
   if (operation === 'delete') {
     const existing = await model.findFirst({ where: { userId: tenantId, localId } });
-    if (!existing) return { id: null, status: 'not_found' };
+    if (!existing) {
+      logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} delete_not_found`);
+      return { id: null, status: 'not_found' };
+    }
     await model.delete({ where: { id: existing.id } });
     return { id: existing.id, status: 'deleted' };
   }
@@ -161,6 +205,8 @@ const pull = async (tenantId, since) => {
   const sinceDate = since ? new Date(since) : new Date(0);
   const entities = {};
 
+  logger.info(`[SyncService.pull] tenant=${tenantId} start since=${sinceDate.toISOString()}`);
+
   const [clientes, productos, trabajadores, documentos] = await Promise.all([
     prisma.cliente.findMany({ where: { userId: tenantId, updatedAt: { gt: sinceDate } } }),
     prisma.producto.findMany({ where: { userId: tenantId, updatedAt: { gt: sinceDate } } }),
@@ -176,11 +222,15 @@ const pull = async (tenantId, since) => {
   if (trabajadores.length) entities.trabajadores = trabajadores;
   if (documentos.length) entities.documentos = documentos;
 
+  logger.info(`[SyncService.pull] tenant=${tenantId} end clientes=${clientes.length} productos=${productos.length} trabajadores=${trabajadores.length} documentos=${documentos.length}`);
+
   return { since: sinceDate.toISOString(), server_time: new Date().toISOString(), entities };
 };
 
 const resolveConflict = async (tenantId, data) => {
   const { entity_type, entity_id, resolution, payload } = data;
+
+  logger.info(`[SyncService.resolveConflict] tenant=${tenantId} entityType=${entity_type} entityId=${entity_id} resolution=${resolution}`);
 
   if (!['keep_server', 'keep_local', 'merge'].includes(resolution)) {
     const error = new Error('Resolución inválida. Use: keep_server, keep_local, merge');
@@ -198,6 +248,7 @@ const resolveConflict = async (tenantId, data) => {
 
   if (resolution === 'keep_server') {
     const entity = await model.findFirst({ where: { id: entity_id, userId: tenantId } });
+    logger.info(`[SyncService.resolveConflict] tenant=${tenantId} keep_server entityFound=${Boolean(entity)}`);
     return { resolution: 'keep_server', entity };
   }
 
@@ -206,11 +257,13 @@ const resolveConflict = async (tenantId, data) => {
     delete updateData.userId;
     delete updateData.localId;
     const updated = await model.update({ where: { id: entity_id }, data: updateData });
+    logger.info(`[SyncService.resolveConflict] tenant=${tenantId} ${resolution} updatedId=${updated.id}`);
     return { resolution, entity: updated };
   }
 };
 
 const getStatus = async (tenantId) => {
+  logger.info(`[SyncService.getStatus] tenant=${tenantId} start`);
   const queueStats = await syncRepository.getStats(tenantId);
 
   const [clientesCount, productosCount, documentosCount] = await Promise.all([
@@ -219,7 +272,7 @@ const getStatus = async (tenantId) => {
     prisma.documento.count({ where: { userId: tenantId } })
   ]);
 
-  return {
+  const status = {
     queue: queueStats,
     counts: {
       clientes: clientesCount,
@@ -228,6 +281,9 @@ const getStatus = async (tenantId) => {
     },
     lastSync: new Date().toISOString()
   };
+
+  logger.info(`[SyncService.getStatus] tenant=${tenantId} end`, status);
+  return status;
 };
 
 module.exports = { push, pull, resolveConflict, getStatus };
