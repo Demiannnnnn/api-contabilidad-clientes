@@ -7,6 +7,44 @@ const logger = require('../../utils/logger');
 const TIPOS_DOCUMENTO = { 33: 'Factura Electrónica', 34: 'Factura Exenta', 39: 'Boleta Electrónica', 41: 'Boleta Exenta', 52: 'Guía Despacho', 56: 'Nota Débito', 61: 'Nota Crédito' };
 const ESTADOS_VALIDOS = ['borrador', 'pendiente', 'emitida', 'pagada', 'parcial', 'anulada', 'rechazada'];
 
+const normalizeDocumentoInput = (data = {}) => {
+  const normalizedItems = Array.isArray(data.items)
+    ? data.items.map((item = {}, idx) => ({
+        ...item,
+        numero_linea: item.numero_linea ?? item.numeroLinea ?? idx + 1,
+        producto_id: item.producto_id ?? item.productoId,
+        codigo_item: item.codigo_item ?? item.codigoItem,
+        precio_unitario: item.precio_unitario ?? item.precioUnitario,
+        descuento_monto: item.descuento_monto ?? item.descuentoMonto,
+        monto_item: item.monto_item ?? item.montoItem,
+      }))
+    : data.items;
+
+  return {
+    ...data,
+    tipo_documento: data.tipo_documento ?? data.tipoDocumento,
+    cliente_id: data.cliente_id ?? data.clienteId,
+    cliente_rut: data.cliente_rut ?? data.clienteRut,
+    cliente_razon_social: data.cliente_razon_social ?? data.clienteRazonSocial,
+    cliente_giro: data.cliente_giro ?? data.clienteGiro,
+    cliente_direccion: data.cliente_direccion ?? data.clienteDireccion,
+    cliente_comuna: data.cliente_comuna ?? data.clienteComuna,
+    fecha_emision: data.fecha_emision ?? data.fechaEmision,
+    fecha_vencimiento: data.fecha_vencimiento ?? data.fechaVencimiento,
+    monto_exento: data.monto_exento ?? data.montoExento,
+    descuento_global: data.descuento_global ?? data.descuentoGlobal,
+    forma_pago: data.forma_pago ?? data.formaPago,
+    forma_pago_detalle: data.forma_pago_detalle ?? data.formaPagoDetalle,
+    condiciones_pago: data.condiciones_pago ?? data.condicionesPago,
+    orden_compra: data.orden_compra ?? data.ordenCompra,
+    trabajador_id: data.trabajador_id ?? data.trabajadorId,
+    direccion_despacho: data.direccion_despacho ?? data.direccionDespacho,
+    fecha_despacho: data.fecha_despacho ?? data.fechaDespacho,
+    local_id: data.local_id ?? data.localId,
+    items: normalizedItems,
+  };
+};
+
 const listDocumentos = async (tenantId, query) => {
   const { skip, take, page, limit } = parsePagination(query);
   const where = {};
@@ -43,7 +81,14 @@ const getDocumento = async (tenantId, id) => {
 };
 
 const createDocumento = async (tenantId, data) => {
-  const validated = validate(documentoSchema, data);
+  const normalizedData = normalizeDocumentoInput(data);
+  if (normalizedData.xml !== undefined) {
+    const error = new Error('Este endpoint solo acepta JSON estructurado. No envíe XML en el payload.');
+    error.status = 400;
+    throw error;
+  }
+
+  const validated = validate(documentoSchema, normalizedData);
 
   // Validate tipo_documento
   if (!TIPOS_DOCUMENTO[validated.tipo_documento]) {

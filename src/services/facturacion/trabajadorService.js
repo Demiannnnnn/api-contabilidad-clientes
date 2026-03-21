@@ -4,10 +4,15 @@ const { generateSyncHash, parsePagination } = require('../../utils/helpers');
 const { sanitizeEmail } = require('../../utils/helpers');
 const { limpiarRut } = require('../../utils/helpers');
 const userRepository = require('../../repositories/core/userRepository');
-const prisma = require('../../config/database');
 const bcrypt = require('bcryptjs');
 
 const SALT_ROUNDS = 10;
+
+const normalizeWorkerRole = (rol) => {
+  if (!rol) return 'trabajador';
+  if (rol === 'vendedor') return 'trabajador';
+  return rol;
+};
 
 const listTrabajadores = async (tenantId, query) => {
   const { skip, take, page, limit } = parsePagination(query);
@@ -48,6 +53,8 @@ const createTrabajador = async (tenantId, data) => {
   const validated = validate(trabajadorSchema, data);
   const email = sanitizeEmail(validated.email);
   const rut = limpiarRut(validated.rut);
+  const rol = normalizeWorkerRole(validated.rol);
+  const permisos = validated.permisos ? JSON.stringify(validated.permisos) : JSON.stringify({});
   const activo = validated.activo !== undefined ? validated.activo : true;
 
   const existingTrabajador = await trabajadorRepository.findByEmail(tenantId, email);
@@ -72,32 +79,15 @@ const createTrabajador = async (tenantId, data) => {
   }
 
   const passwordHash = await bcrypt.hash(validated.password, SALT_ROUNDS);
-
-  return prisma.$transaction(async (tx) => {
-    await tx.user.create({
-      data: {
-        email,
-        passwordHash,
-        rut,
-        nombre: validated.nombre,
-        rol: 'trabajador',
-        permisos: JSON.stringify({}),
-        activo,
-        duenoId: tenantId,
-      },
-    });
-
-    return tx.trabajador.create({
-      data: {
-        userId: tenantId,
-        nombre: validated.nombre,
-        rut,
-        cargo: validated.cargo || null,
-        email,
-        passwordHash,
-        activo,
-      },
-    });
+  return trabajadorRepository.create({
+    userId: tenantId,
+    nombre: validated.nombre,
+    rut,
+    email,
+    passwordHash,
+    rol,
+    permisos,
+    activo,
   });
 };
 
@@ -142,38 +132,15 @@ const updateTrabajador = async (tenantId, id, data) => {
   const updateData = {};
   if (validated.nombre !== undefined) updateData.nombre = validated.nombre;
   if (normalizedRut !== undefined) updateData.rut = normalizedRut;
-  if (validated.cargo !== undefined) updateData.cargo = validated.cargo;
   if (normalizedEmail !== undefined) updateData.email = normalizedEmail;
+  if (validated.rol !== undefined) updateData.rol = normalizeWorkerRole(validated.rol);
+  if (validated.permisos !== undefined) updateData.permisos = JSON.stringify(validated.permisos);
   if (validated.activo !== undefined) updateData.activo = validated.activo;
   if (validated.password) {
     updateData.passwordHash = await bcrypt.hash(validated.password, SALT_ROUNDS);
   }
 
-  const updatedTrabajador = await trabajadorRepository.update(tenantId, id, updateData);
-
-  const linkedUser = await prisma.user.findFirst({
-    where: {
-      duenoId: tenantId,
-      rol: 'trabajador',
-      email: { equals: existing.email || '', mode: 'insensitive' },
-    },
-  });
-
-  if (linkedUser) {
-    const userUpdate = {};
-    if (normalizedEmail !== undefined) userUpdate.email = normalizedEmail;
-    if (validated.nombre !== undefined) userUpdate.nombre = validated.nombre;
-    if (validated.activo !== undefined) userUpdate.activo = validated.activo;
-    if (validated.password) {
-      userUpdate.passwordHash = await bcrypt.hash(validated.password, SALT_ROUNDS);
-    }
-
-    if (Object.keys(userUpdate).length > 0) {
-      await prisma.user.update({ where: { id: linkedUser.id }, data: userUpdate });
-    }
-  }
-
-  return updatedTrabajador;
+  return trabajadorRepository.update(tenantId, id, updateData);
 };
 
 const toggleActive = async (tenantId, id) => {

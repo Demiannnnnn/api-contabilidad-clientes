@@ -22,7 +22,7 @@ const registerSchema = z.object({
 });
 
 const loginSchema = z.object({
-  email: z.string().email('Email inválido'),
+  email: z.email('Email inválido'),
   password: z.string().min(1, 'Password requerido'),
   machineId: z.string().optional(),
 });
@@ -59,7 +59,7 @@ const createUserSchema = z.object({
   nombre: z.string().min(1, 'Nombre requerido'),
   rut: rutSchema.optional(),
   rol: z.enum(['administrador', 'trabajador', 'cajero', 'contador']).default('trabajador'),
-  permisos: z.record(z.any()).optional(),
+  permisos: z.record(z.string(), z.any()).optional(),
 });
 
 const updateUserSchema = z.object({
@@ -67,7 +67,7 @@ const updateUserSchema = z.object({
   nombre: z.string().min(1).optional(),
   rut: rutSchema.optional(),
   rol: z.enum(['administrador', 'trabajador', 'cajero', 'contador']).optional(),
-  permisos: z.record(z.any()).optional(),
+  permisos: z.record(z.string(), z.any()).optional(),
 });
 
 // === Helper: camelCase to snake_case ===
@@ -183,11 +183,12 @@ const productoUpdateSchema = z.object({
 // === Trabajador Schema ===
 const trabajadorSchema = z.object({
   nombre: z.string().min(1, 'Nombre requerido'),
-  apellido: z.string().min(1, 'Apellido requerido'),
   rut: rutSchema,
   cargo: z.string().optional(),
   email: z.string().email('Email inválido'),
   password: z.string().min(8, 'Mínimo 8 caracteres'),
+  rol: z.enum(['trabajador', 'cajero', 'administrador', 'vendedor']).optional(),
+  permisos: z.record(z.string(), z.any()).optional(),
   activo: z.boolean().optional(),
   telefono: z.string().optional(),
   comision: z.number().min(0).max(100).optional(),
@@ -279,7 +280,7 @@ const syncPushSchema = z.object({
     entity_type: z.string(),
     entity_local_id: z.number().int(),
     operation: z.enum(['create', 'update', 'delete']),
-    payload: z.record(z.any()),
+    payload: z.record(z.string(), z.any()),
     queued_at: z.string().optional(),
   })),
 });

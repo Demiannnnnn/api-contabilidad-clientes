@@ -278,7 +278,7 @@ class AuthService {
   // Internal: Generate access + refresh tokens
   // ============================================
   async _generateTokenPair(user, machineId) {
-    // Access token (15min)
+    // Access token (1h)
     const accessToken = jwt.sign(
       {
         sub: user.id,
@@ -287,7 +287,7 @@ class AuthService {
         machineId: machineId || null,
       },
       process.env.JWT_SECRET,
-      { expiresIn: process.env.JWT_ACCESS_EXPIRES || '15m' }
+      { expiresIn: process.env.JWT_ACCESS_EXPIRES || '1h' }
     );
 
     // Refresh token (30 days)

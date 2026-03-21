@@ -9,6 +9,31 @@ const ENTITY_MODELS = {
   documento: 'documento',
 };
 
+const ENTITY_WITH_LOCAL_ID = new Set(['cliente', 'producto', 'documento']);
+
+const normalizeRut = (rut) => {
+  if (!rut) return null;
+  return String(rut).replace(/\./g, '').replace(/\s/g, '').trim().toUpperCase();
+};
+
+const buildLookupWhere = (entityType, tenantId, localId, payload = {}) => {
+  if (ENTITY_WITH_LOCAL_ID.has(entityType)) {
+    return { userId: tenantId, localId };
+  }
+
+  if (entityType === 'trabajador') {
+    const email = typeof payload.email === 'string' ? payload.email.trim().toLowerCase() : null;
+    if (email) return { userId: tenantId, email: { equals: email, mode: 'insensitive' } };
+
+    const rut = normalizeRut(payload.rut);
+    if (rut) return { userId: tenantId, rut };
+
+    return null;
+  }
+
+  return { userId: tenantId };
+};
+
 function summarizeOperation(op = {}) {
   return {
     entity_type: op.entity_type,
@@ -85,20 +110,35 @@ const processOperation = async (tenantId, entityType, operation, localId, payloa
   logger.debug(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} op=${operation} localId=${localId}`);
 
   if (operation === 'create') {
-    const existing = await model.findFirst({ where: { userId: tenantId, localId } });
+    const lookupWhere = buildLookupWhere(entityType, tenantId, localId, payload);
+    const existing = lookupWhere ? await model.findFirst({ where: lookupWhere }) : null;
     if (existing) {
       logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} already_exists serverId=${existing.id}`);
       return { id: existing.id, status: 'already_exists' };
     }
 
     const data = mapPayloadToModel(entityType, tenantId, payload, localId);
+    if (entityType === 'trabajador' && !data.passwordHash) {
+      logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} skipped_missing_credentials`);
+      return { id: null, status: 'skipped_missing_credentials' };
+    }
     const created = await model.create({ data });
     return { id: created.id, status: 'created' };
   }
 
   if (operation === 'update') {
-    let existing = await model.findFirst({ where: { userId: tenantId, localId } });
+    const lookupWhere = buildLookupWhere(entityType, tenantId, localId, payload);
+    if (!lookupWhere) {
+      throw new Error(`No se pudo identificar el registro ${entityType} para actualizar.`);
+    }
+
+    let existing = await model.findFirst({ where: lookupWhere });
     if (!existing) {
+      if (entityType === 'trabajador') {
+        logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} worker_not_found_for_update`);
+        return { id: null, status: 'not_found' };
+      }
+
       logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} not_found_for_update creating_new`);
       const data = mapPayloadToModel(entityType, tenantId, payload, localId);
       const created = await model.create({ data });
@@ -124,13 +164,17 @@ const processOperation = async (tenantId, entityType, operation, localId, payloa
 
     const updateData = mapPayloadToModel(entityType, tenantId, payload, localId);
     delete updateData.userId;
-    delete updateData.localId;
+    if (ENTITY_WITH_LOCAL_ID.has(entityType)) delete updateData.localId;
     const updated = await model.update({ where: { id: existing.id }, data: updateData });
     return { id: updated.id, status: 'updated' };
   }
 
   if (operation === 'delete') {
-    const existing = await model.findFirst({ where: { userId: tenantId, localId } });
+    const lookupWhere = buildLookupWhere(entityType, tenantId, localId, payload);
+    if (!lookupWhere) {
+      return { id: null, status: 'not_found' };
+    }
+    const existing = await model.findFirst({ where: lookupWhere });
     if (!existing) {
       logger.info(`[SyncService.processOperation] tenant=${tenantId} entity=${entityType} localId=${localId} delete_not_found`);
       return { id: null, status: 'not_found' };
@@ -143,7 +187,8 @@ const processOperation = async (tenantId, entityType, operation, localId, payloa
 };
 
 const mapPayloadToModel = (entityType, tenantId, payload, localId) => {
-  const base = { userId: tenantId, localId };
+  const base = { userId: tenantId };
+  if (ENTITY_WITH_LOCAL_ID.has(entityType)) base.localId = localId;
 
   switch (entityType) {
     case 'cliente':
@@ -179,9 +224,11 @@ const mapPayloadToModel = (entityType, tenantId, payload, localId) => {
       return {
         ...base,
         nombre: payload.nombre,
-        rut: payload.rut || '',
-        cargo: payload.cargo || null,
+        rut: normalizeRut(payload.rut),
         email: payload.email,
+        rol: payload.rol || 'trabajador',
+        permisos: payload.permisos ? JSON.stringify(payload.permisos) : undefined,
+        passwordHash: payload.passwordHash,
         activo: payload.activo !== undefined ? payload.activo : true,
       };
     case 'documento':
@@ -255,7 +302,7 @@ const resolveConflict = async (tenantId, data) => {
   if (resolution === 'keep_local' || resolution === 'merge') {
     const updateData = mapPayloadToModel(mappedType, tenantId, payload, payload.local_id);
     delete updateData.userId;
-    delete updateData.localId;
+    if (ENTITY_WITH_LOCAL_ID.has(mappedType)) delete updateData.localId;
     const updated = await model.update({ where: { id: entity_id }, data: updateData });
     logger.info(`[SyncService.resolveConflict] tenant=${tenantId} ${resolution} updatedId=${updated.id}`);
     return { resolution, entity: updated };

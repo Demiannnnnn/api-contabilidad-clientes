@@ -5,14 +5,13 @@ CREATE TABLE "User" (
     "passwordHash" TEXT NOT NULL,
     "rut" TEXT,
     "nombre" TEXT,
-    "rol" TEXT NOT NULL DEFAULT 'trabajador',
+    "rol" TEXT NOT NULL DEFAULT 'dueno',
     "permisos" TEXT NOT NULL DEFAULT '{}',
     "activo" BOOLEAN NOT NULL DEFAULT true,
     "requiereAutorizacion" BOOLEAN NOT NULL DEFAULT false,
     "ultimoAcceso" TIMESTAMP(3),
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
-    "duenoId" INTEGER,
 
     CONSTRAINT "User_pkey" PRIMARY KEY ("id")
 );
@@ -172,10 +171,11 @@ CREATE TABLE "Trabajador" (
     "id" SERIAL NOT NULL,
     "userId" INTEGER NOT NULL,
     "nombre" TEXT NOT NULL,
-    "rut" TEXT NOT NULL,
-    "cargo" TEXT,
     "email" TEXT NOT NULL,
     "passwordHash" TEXT NOT NULL,
+    "rol" TEXT NOT NULL DEFAULT 'trabajador',
+    "permisos" TEXT NOT NULL DEFAULT '{}',
+    "rut" TEXT,
     "activo" BOOLEAN NOT NULL DEFAULT true,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -259,9 +259,6 @@ CREATE INDEX "Documento_trackIdSII_idx" ON "Documento"("trackIdSII");
 CREATE UNIQUE INDEX "Documento_userId_tipoDocumento_folio_key" ON "Documento"("userId", "tipoDocumento", "folio");
 
 -- CreateIndex
-CREATE UNIQUE INDEX "Trabajador_userId_rut_key" ON "Trabajador"("userId", "rut");
-
--- CreateIndex
 CREATE UNIQUE INDEX "Trabajador_userId_email_key" ON "Trabajador"("userId", "email");
 
 -- CreateIndex
@@ -278,9 +275,6 @@ CREATE UNIQUE INDEX "Licence_licenceKey_key" ON "Licence"("licenceKey");
 
 -- CreateIndex
 CREATE UNIQUE INDEX "MachineBinding_machineId_key" ON "MachineBinding"("machineId");
-
--- AddForeignKey
-ALTER TABLE "User" ADD CONSTRAINT "User_duenoId_fkey" FOREIGN KEY ("duenoId") REFERENCES "User"("id") ON DELETE SET NULL ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ContadorCliente" ADD CONSTRAINT "ContadorCliente_contadorId_fkey" FOREIGN KEY ("contadorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;

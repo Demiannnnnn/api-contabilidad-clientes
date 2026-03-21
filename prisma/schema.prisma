@@ -23,7 +23,7 @@ model User {
   passwordHash          String
   rut                   String?
   nombre                String?
-  rol                   String    @default("trabajador")  // dueño, administrador, trabajador, cajero, contador
+  rol                   String    @default("dueno")       // dueño, administrador, contador
   permisos              String    @default("{}")         // JSON de permisos granulares
   activo                Boolean   @default(true)
   requiereAutorizacion  Boolean   @default(false)
@@ -36,11 +36,6 @@ model User {
   documentos            Documento[]
   trabajadores          Trabajador[]
   categorias            Categoria[]
-
-  // Relación jerárquica: trabajadores pertenecen a un dueño
-  duenoId               Int?
-  dueno                 User?     @relation("Trabajadores", fields: [duenoId], references: [id])
-  trabajadoresHijos     User[]    @relation("Trabajadores")
 
   // Relación Contador
   clientesAsignados     ContadorCliente[] @relation("ContadorRelacion")
@@ -268,16 +263,16 @@ model Trabajador{
   userId      Int       
   user        User      @relation(fields:[userId], references: [id])
   nombre      String
-  rut         String
-  cargo       String?
   email       String
   passwordHash String
+  rol         String    @default("trabajador") // trabajador, cajero, administrador
+  permisos    String    @default("{}")         // JSON de permisos granulares por trabajador
+  rut         String?
   activo      Boolean   @default(true)
   createdAt   DateTime  @default(now())
   updatedAt   DateTime  @updatedAt
   documentos Documento[]
 
-  @@unique([userId, rut])
   @@unique([userId, email])
 }
 
