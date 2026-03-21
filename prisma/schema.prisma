@@ -195,7 +195,7 @@ model Documento {
   trackIdSII         String?   // ID de seguimiento del SII
   estadoSII          String?   // Estado en el SII: ENVIADO, ACEPTADO, RECHAZADO, ERROR
   fechaEnvioSII      DateTime? // Fecha de envío al SII
-  xmlEnviado         String?   @db.Text // XML del DTE enviado
+  xmlEnviado         String?   @db.Text // DEPRECADO: usar DocumentoXmlResguardo para no inflar esta tabla
   
   // Sincronización
   syncStatus         String?   @default("synced")
@@ -209,6 +209,7 @@ model Documento {
   // Relaciones
   items       DocumentoItem[]
   referencias ReferenciaDocumento[]
+  xmlResguardo DocumentoXmlResguardo?
   
   // Conexión con trabajador
   trabajadorId Int?
@@ -218,6 +219,19 @@ model Documento {
   @@index([userId, fechaEmision])
   @@index([userId, estado])
   @@index([trackIdSII])
+}
+
+// Resguardo de XML enviado al SII (seguridad/auditoria)
+// Se mantiene fuera de Documento para no afectar consultas frecuentes.
+model DocumentoXmlResguardo {
+  id          Int       @id @default(autoincrement())
+  documentoId Int       @unique
+  documento   Documento @relation(fields: [documentoId], references: [id], onDelete: Cascade)
+  xmlFirmado  String    @db.Text
+  xmlHash     String
+  createdAt   DateTime  @default(now())
+
+  @@index([createdAt])
 }
 
 // Referencias de documentos (notas de crédito/débito)

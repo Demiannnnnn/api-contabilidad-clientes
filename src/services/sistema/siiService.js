@@ -39,6 +39,7 @@ class SiiService {
         estado: resultado.estado,
         timestamp: new Date(),
         xmlEnviado: xml,
+        xmlFirmado,
       };
     } catch (error) {
       logger.error(`[SiiService] Error enviando documento ${documento.id}: ${error.message}`);

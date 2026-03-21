@@ -1,4 +1,5 @@
 const prisma = require('../../config/database');
+const crypto = require('crypto');
 
 const findAll = async (tenantId, { skip = 0, take = 50, where = {} } = {}) => {
   return prisma.documento.findMany({
@@ -28,7 +29,7 @@ const findById = async (tenantId, id) => {
 
 const findByFolio = async (tenantId, tipoDocumento, folio) => {
   return prisma.documento.findFirst({
-    where: { userId: tenantId, tipo: tipoDocumento, numero: folio }
+    where: { userId: tenantId, tipoDocumento, folio }
   });
 };
 
@@ -105,6 +106,16 @@ const updateSiiStatus = async (id, siiData) => {
   });
 };
 
+const saveXmlResguardo = async (documentoId, xmlFirmado) => {
+  const xmlHash = crypto.createHash('sha256').update(String(xmlFirmado)).digest('hex');
+
+  return prisma.documentoXmlResguardo.upsert({
+    where: { documentoId },
+    update: { xmlFirmado, xmlHash },
+    create: { documentoId, xmlFirmado, xmlHash }
+  });
+};
+
 const remove = async (tenantId, id) => {
   const doc = await prisma.documento.findFirst({ where: { id, userId: tenantId } });
   if (!doc) return null;
@@ -153,5 +164,5 @@ const findPendingSync = async (tenantId) => {
 
 module.exports = {
   findAll, countAll, findById, findByFolio, create, update, updateEstado,
-  updateSiiStatus, remove, sumByPeriod, groupByTipo, groupByEstado, findPendingSync
+  updateSiiStatus, saveXmlResguardo, remove, sumByPeriod, groupByTipo, groupByEstado, findPendingSync
 };

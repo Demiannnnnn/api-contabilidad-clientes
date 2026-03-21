@@ -137,7 +137,7 @@ const createDocumento = async (tenantId, data) => {
   });
 
   const docData = {
-    tenantId,
+    userId: tenantId,
     localId: validated.local_id || null,
     tipoDocumento: validated.tipo_documento,
     folio: validated.folio,
@@ -180,12 +180,17 @@ const createDocumento = async (tenantId, data) => {
       logger.info(`[DocumentoService] Enviando documento ${documento.id} al SII`);
       const resultadoSII = await siiService.enviarDocumento(tenantId, documento);
 
+      // Guardar XML solo como resguardo de seguridad en tabla separada.
+      const xmlResguardo = resultadoSII.xmlFirmado || resultadoSII.xmlEnviado;
+      if (xmlResguardo) {
+        await documentoRepository.saveXmlResguardo(documento.id, xmlResguardo);
+      }
+
       // Actualizar documento con datos del SII
       await documentoRepository.update(tenantId, documento.id, {
         trackIdSII: resultadoSII.trackId,
         estadoSII: resultadoSII.estado,
         fechaEnvioSII: resultadoSII.timestamp,
-        xmlEnviado: resultadoSII.xmlEnviado,
         estado: 'emitida',
       });
 
