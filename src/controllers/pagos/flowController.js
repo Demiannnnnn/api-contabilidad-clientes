@@ -1,10 +1,6 @@
-const crypto = require('crypto');
 const prisma = require('../../config/database');
 const logger = require('../../utils/logger');
-
-const FLOW_API_URL = process.env.FLOW_API_URL || 'https://www.flow.cl/api';
-const FLOW_API_KEY = process.env.FLOW_API_KEY;
-const FLOW_SECRET_KEY = process.env.FLOW_SECRET_KEY;
+const flowClient = require('../../clients/flow');
 
 // Precios definidos en el servidor — nunca confiar en el cliente
 const PLAN_PRICES = {
@@ -12,53 +8,11 @@ const PLAN_PRICES = {
   yearly: 499990,
 };
 
-// ─── Helpers ───────────────────────────────────────────
-function signParams(params) {
-  const sorted = Object.keys(params).sort().map(k => `${k}${params[k]}`).join('');
-  return crypto.createHmac('sha256', FLOW_SECRET_KEY).update(sorted).digest('hex');
-}
-
-async function flowPost(endpoint, params) {
-  params.apiKey = FLOW_API_KEY;
-  params.s = signParams(params);
-
-  const body = new URLSearchParams(params);
-  const res = await fetch(`${FLOW_API_URL}${endpoint}`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-    body: body.toString(),
-  });
-
-  const data = await res.json();
-  if (!res.ok) {
-    const err = new Error(data.message || 'Error en API Flow');
-    err.status = res.status;
-    throw err;
-  }
-  return data;
-}
-
-async function flowGet(endpoint, params) {
-  params.apiKey = FLOW_API_KEY;
-  params.s = signParams(params);
-
-  const qs = new URLSearchParams(params).toString();
-  const res = await fetch(`${FLOW_API_URL}${endpoint}?${qs}`);
-
-  const data = await res.json();
-  if (!res.ok) {
-    const err = new Error(data.message || 'Error en API Flow');
-    err.status = res.status;
-    throw err;
-  }
-  return data;
-}
-
 // ─── Endpoints ─────────────────────────────────────────
 
 const createOrder = async (req, res) => {
   try {
-    if (!FLOW_API_KEY || !FLOW_SECRET_KEY) {
+    if (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY) {
       return res.status(503).json({ success: false, error: 'Flow no está configurado en el servidor' });
     }
 
@@ -76,7 +30,7 @@ const createOrder = async (req, res) => {
     const returnUrl = `${process.env.API_URL || 'http://localhost:3000'}/api/flow/return`;
     const confirmationUrl = `${process.env.API_URL || 'http://localhost:3000'}/api/flow/webhook`;
 
-    const flowData = await flowPost('/payment/create', {
+    const flowData = await flowClient.createOrder({
       commerceOrder,
       subject: `Licencia ${plan}`,
       currency: 'CLP',
@@ -102,12 +56,12 @@ const createOrder = async (req, res) => {
 
 const getStatus = async (req, res) => {
   try {
-    if (!FLOW_API_KEY || !FLOW_SECRET_KEY) {
+    if (!process.env.FLOW_API_KEY || !process.env.FLOW_SECRET_KEY) {
       return res.status(503).json({ success: false, error: 'Flow no está configurado en el servidor' });
     }
 
     const { orderId } = req.params;
-    const flowData = await flowGet('/payment/getStatus', { flowOrder: orderId });
+    const flowData = await flowClient.getStatusByFlowOrder(orderId);
 
     const response = {
       success: true,
@@ -148,7 +102,7 @@ const webhook = async (req, res) => {
       return res.status(400).json({ success: false, error: 'Token requerido' });
     }
 
-    const flowData = await flowGet('/payment/getStatus', { token });
+    const flowData = await flowClient.getStatus(token);
     logger.info(`[FLOW WEBHOOK] order=${flowData.flowOrder} status=${flowData.status}`);
 
     // status 2 = pagado

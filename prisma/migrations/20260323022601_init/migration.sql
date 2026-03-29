@@ -132,6 +132,17 @@ CREATE TABLE "Documento" (
 );
 
 -- CreateTable
+CREATE TABLE "DocumentoXmlResguardo" (
+    "id" SERIAL NOT NULL,
+    "documentoId" INTEGER NOT NULL,
+    "xmlFirmado" TEXT NOT NULL,
+    "xmlHash" TEXT NOT NULL,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "DocumentoXmlResguardo_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
 CREATE TABLE "ReferenciaDocumento" (
     "id" SERIAL NOT NULL,
     "documentoId" INTEGER NOT NULL,
@@ -259,6 +270,12 @@ CREATE INDEX "Documento_trackIdSII_idx" ON "Documento"("trackIdSII");
 CREATE UNIQUE INDEX "Documento_userId_tipoDocumento_folio_key" ON "Documento"("userId", "tipoDocumento", "folio");
 
 -- CreateIndex
+CREATE UNIQUE INDEX "DocumentoXmlResguardo_documentoId_key" ON "DocumentoXmlResguardo"("documentoId");
+
+-- CreateIndex
+CREATE INDEX "DocumentoXmlResguardo_createdAt_idx" ON "DocumentoXmlResguardo"("createdAt");
+
+-- CreateIndex
 CREATE UNIQUE INDEX "Trabajador_userId_email_key" ON "Trabajador"("userId", "email");
 
 -- CreateIndex
@@ -299,6 +316,9 @@ ALTER TABLE "Documento" ADD CONSTRAINT "Documento_clienteId_fkey" FOREIGN KEY ("
 
 -- AddForeignKey
 ALTER TABLE "Documento" ADD CONSTRAINT "Documento_trabajadorId_fkey" FOREIGN KEY ("trabajadorId") REFERENCES "Trabajador"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "DocumentoXmlResguardo" ADD CONSTRAINT "DocumentoXmlResguardo_documentoId_fkey" FOREIGN KEY ("documentoId") REFERENCES "Documento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
 
 -- AddForeignKey
 ALTER TABLE "ReferenciaDocumento" ADD CONSTRAINT "ReferenciaDocumento_documentoId_fkey" FOREIGN KEY ("documentoId") REFERENCES "Documento"("id") ON DELETE CASCADE ON UPDATE CASCADE;
