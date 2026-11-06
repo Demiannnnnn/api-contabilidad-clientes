@@ -18,10 +18,12 @@ const registerSchema = z.object({
   razon_social: z.string().optional(),
   giro: z.string().optional(),
   machineId: z.string().optional(),
-}).transform((data) => {
+}).transform((data, ctx) => {
   const nombre = data.nombre || data.name;
   if (!nombre) {
-    throw new z.ZodError([{ code: 'custom', path: ['nombre'], message: 'Nombre requerido' }]);
+    // Reportar como issue (no lanzar) para que validate() responda 400 en vez de 500
+    ctx.addIssue({ code: 'custom', path: ['nombre'], message: 'Nombre requerido' });
+    return z.NEVER;
   }
   return { ...data, nombre, name: undefined };
 });

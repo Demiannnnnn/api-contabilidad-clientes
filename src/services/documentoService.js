@@ -6,7 +6,7 @@ const TIPOS_DOCUMENTO = { 33: 'Factura Electrónica', 34: 'Factura Exenta', 39: 
 const ESTADOS_VALIDOS = ['borrador', 'pendiente', 'emitida', 'pagada', 'parcial', 'anulada', 'rechazada'];
 
 const listDocumentos = async (tenantId, query) => {
-  const { skip, take, page, limit } = parsePagination(query);
+  const { skip, limit: take, page, limit } = parsePagination(query);
   const where = {};
 
   if (query.tipo_documento) where.tipoDocumento = parseInt(query.tipo_documento);
