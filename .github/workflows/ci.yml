@@ -1,0 +1,26 @@
+name: CI
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  build-test:
+    runs-on: ubuntu-latest
+    env:
+      # Solo para que Prisma resuelva el datasource; los tests no conectan a la BD.
+      DATABASE_URL: postgresql://ci:ci@localhost:5432/ci?schema=public
+      JWT_SECRET: ci-secret
+      PUPPETEER_SKIP_DOWNLOAD: 'true'
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      # El repo no versiona package-lock.json (está en .gitignore), por eso npm install.
+      - run: npm install --no-audit --no-fund
+      - run: npm run build
+      - run: npm test -- --ci

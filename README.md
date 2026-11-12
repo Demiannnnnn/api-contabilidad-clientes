@@ -63,6 +63,18 @@ npm start
 └── tests/                     # Tests unitarios e integración
 ```
 
+## 🧪 Tests y CI
+
+```bash
+# Requiere DATABASE_URL definida (no se conecta a la BD; Prisma la exige para validar el esquema)
+npm run build   # prisma validate + generación del cliente Prisma
+npm test        # tests unitarios con Jest (repositorios mockeados)
+```
+
+Los tests están en `tests/unit/` y cubren validaciones (Zod, RUT módulo 11), servicios
+(auth, documentos, pagos, folios, clientes, productos, vendedores) y middleware de autenticación.
+El workflow `.github/workflows/ci.yml` ejecuta build + tests en cada push y pull request.
+
 ## 📝 Licencia
 
 ISC

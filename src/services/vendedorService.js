@@ -3,7 +3,7 @@ const { validate, vendedorSchema, vendedorUpdateSchema } = require('./validation
 const { generateSyncHash, parsePagination } = require('../utils/helpers');
 
 const listVendedores = async (tenantId, query) => {
-  const { skip, take, page, limit } = parsePagination(query);
+  const { skip, limit: take, page, limit } = parsePagination(query);
   const where = {};
   if (query.activo !== undefined) where.activo = query.activo === 'true';
 
