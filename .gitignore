@@ -1,6 +1,5 @@
 # Dependencies
 node_modules/
-package-lock.json
 yarn.lock
 pnpm-lock.yaml
 
@@ -62,6 +61,7 @@ desktop.ini
 # Temporary files
 *.tmp
 *.temp
+*.bak
 temp/
 tmp/
 
