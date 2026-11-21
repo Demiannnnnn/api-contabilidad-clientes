@@ -8,7 +8,9 @@
   },
   "scripts": {
     "dev": "nodemon src/server.js",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "prisma:generate": "prisma generate --generator client",
+    "prisma:migrate": "prisma migrate dev"
   },
   "repository": {
     "type": "git",
