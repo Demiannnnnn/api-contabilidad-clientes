@@ -1,5 +1,3 @@
-const prisma = require('../config/database');
-
 async function auditLog(req, accion, entidad, entidadId, datosAnteriores, datosNuevos, detalles) {
   try {
     if (!req.user || !req.user.id) return;

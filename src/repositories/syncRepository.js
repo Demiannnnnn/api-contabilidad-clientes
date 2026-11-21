@@ -1,5 +1,3 @@
-const prisma = require('../config/database');
-
 // SyncQueue model doesn't exist in schema yet — stubs
 const createEntry = async (data) => {
   console.warn('[SyncRepository] SyncQueue model not in schema yet');

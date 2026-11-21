@@ -1,5 +1,3 @@
-const prisma = require('../config/database');
-
 const findByDocumento = async (tenantId, documentoId) => {
   // Pago model doesn't exist yet — stub
   return [];

@@ -1,5 +1,3 @@
-const prisma = require('../config/database');
-
 // FolioCaf model doesn't exist in schema yet — stubs
 const findAll = async (tenantId, where = {}) => {
   return [];
