@@ -1,47 +1,63 @@
 const prisma = require('../config/database');
 
 class UserRepository {
-    async createUser(data) {
-        return await prisma.user.create({
-            data: {
-                email: data.email,
-                password: data.password,
-                name: data.name,
-                rut: data.rut
-            },
-        });
-    }
-    async findByEmail(email) {
-        return await prisma.user.findUnique({
-            where: { email },
-        });
-    }
+  async findAll(tenantId) {
+    // In single-user/flat model, list all users
+    return prisma.user.findMany({
+      orderBy: { createdAt: 'desc' },
+      select: {
+        id: true, email: true, rut: true, nombre: true,
+        rol: true, permisos: true, activo: true, ultimoAcceso: true,
+        createdAt: true, updatedAt: true,
+      },
+    });
+  }
 
+  async findById(tenantId, id) {
+    return prisma.user.findFirst({
+      where: { id },
+      select: {
+        id: true, email: true, rut: true, nombre: true,
+        rol: true, permisos: true, activo: true, ultimoAcceso: true,
+        createdAt: true, updatedAt: true,
+      },
+    });
+  }
 
-    async delete(id) {
-        return await prisma.user.delete({
-            where: { id },
-        });
-    }
+  async findByEmail(tenantId, email) {
+    return prisma.user.findFirst({
+      where: { email: { equals: email, mode: 'insensitive' } },
+    });
+  }
 
-    async update(id, data) {
-        return await prisma.user.update({
-            where: { id },
-            data: {
-                email: data.email,
-                password: data.password,
-                name: data.name,
-            },
-        });
-    }
-    async findAll() {
-        return await prisma.user.findMany({
-            orderBy: { createdAt: 'desc' },
-            include: {
-                cliente: true,
-            }
-        });
-    }
+  async create(data) {
+    return prisma.user.create({
+      data,
+      select: {
+        id: true, email: true, rut: true, nombre: true,
+        rol: true, permisos: true, activo: true, createdAt: true,
+      },
+    });
+  }
+
+  async update(tenantId, id, data) {
+    return prisma.user.update({
+      where: { id },
+      data,
+      select: {
+        id: true, email: true, rut: true, nombre: true,
+        rol: true, permisos: true, activo: true, updatedAt: true,
+      },
+    });
+  }
+
+  async delete(tenantId, id) {
+    return prisma.user.delete({ where: { id } });
+  }
+
+  async countByTenant(tenantId) {
+    return prisma.user.count();
+  }
 }
 
 module.exports = new UserRepository();

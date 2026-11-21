@@ -1,102 +1,77 @@
-require('dotenv').config();
-const bcrypt = require('bcryptjs');
-const jwt = require('jsonwebtoken');
-const userRepository = require('../repositories/userRepository');
+const authService = require('../services/authService');
 
 const register = async (req, res) => {
-    try {
-        const { email, password, name, rut, razonSocial, giro, direccion } = req.body;
-
-        const existingUser = await userRepository.findByEmail(email);
-        if (existingUser) {
-            return res.status(400).json({ error: 'El email ya está registrado' });
-        }
-
-        const hashedPassword = await bcrypt.hash(password, 10);
-        const user = await userRepository.createUser({
-            email,
-            password: hashedPassword,
-            name,
-            rut,
-            razonSocial,
-            giro,
-            direccion
-        });
-
-        const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
-
-        res.status(201).json({
-            success: true,
-            data: {
-                token,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Register error:', error);
-        res.status(500).json({ success: false, error: 'Error al registrar usuario' });
+  try {
+    const result = await authService.register(req.body);
+    res.status(201).json({ success: true, ...result });
+  } catch (error) {
+    const status = error.status || 500;
+    const response = { success: false };
+    if (error.errors) {
+      response.errors = error.errors;
+      response.error = 'Error de validación';
+    } else {
+      response.error = error.message || 'Error al registrar';
     }
+    res.status(status).json(response);
+  }
 };
 
 const login = async (req, res) => {
-    try {
-        const { email, password } = req.body;
+  try {
+    const result = await authService.login(req.body);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ success: false, error: error.message || 'Error al iniciar sesión' });
+  }
+};
 
-        const user = await userRepository.findByEmail(email);
-        if (!user) {
-            return res.status(401).json({ error: 'Credenciales inválidas' });
-        }
+const refresh = async (req, res) => {
+  try {
+    const { refreshToken } = req.body;
+    const result = await authService.refresh(refreshToken);
+    res.json({ success: true, ...result });
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ success: false, error: error.message || 'Error renovando token' });
+  }
+};
 
-        const isMatch = await bcrypt.compare(password, user.password);
-        if (!isMatch) {
-            return res.status(401).json({ error: 'Credenciales inválidas' });
-        }
+const logout = async (req, res) => {
+  try {
+    await authService.logout(req.user.id);
+    res.json({ success: true, message: 'Sesión cerrada' });
+  } catch (error) {
+    res.status(500).json({ success: false, error: 'Error al cerrar sesión' });
+  }
+};
 
-        const token = jwt.sign(
-            { id: user.id, email: user.email, role: user.role },
-            process.env.JWT_SECRET,
-            { expiresIn: '24h' }
-        );
+const getProfile = async (req, res) => {
+  try {
+    const user = await authService.getProfile(req.user.id);
+    res.json({ success: true, data: user });
+  } catch (error) {
+    const status = error.status || 500;
+    res.status(status).json({ success: false, error: error.message });
+  }
+};
 
-        res.json({
-            success: true,
-            data: {
-                token,
-                user: {
-                    id: user.id,
-                    email: user.email,
-                    name: user.name,
-                    role: user.role
-                }
-            }
-        });
-    } catch (error) {
-        console.error('Login error:', error);
-        res.status(500).json({ success: false, error: 'Error al iniciar sesión' });
+const changePassword = async (req, res) => {
+  try {
+    await authService.changePassword(req.user.id, req.body);
+    res.json({ success: true, message: 'Contraseña cambiada exitosamente' });
+  } catch (error) {
+    const status = error.status || 500;
+    const response = { success: false };
+    if (error.errors) {
+      response.errors = error.errors;
+      response.error = 'Error de validación';
+    } else {
+      response.error = error.message || 'Error al cambiar contraseña';
     }
+    res.status(status).json(response);
+  }
 };
 
-const changePassword = (req, res) => {
-    // Lógica para cambiar la contraseña de un usuario
-    res.json({ message: 'Contraseña cambiada exitosamente' });
-}
-
-const getProfile = (req, res) => {
-    res.json({ success: true, data: req.user });
-}
-
-module.exports = {
-    register,
-    login,
-    changePassword,
-    getProfile
-};
+module.exports = { register, login, refresh, logout, getProfile, changePassword };

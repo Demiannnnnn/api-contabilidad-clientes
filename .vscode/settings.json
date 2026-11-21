@@ -1,0 +1,17 @@
+{
+    "files.exclude": {
+        "**/node_modules": true,
+        "**/dist": true,
+        "**/package-lock.json": true,
+        "**/.env": false,
+        "**/package.json": true,
+        "**/.gitignore": true,
+        "**/generated": true,
+        
+        
+
+        
+    
+    }
+
+}

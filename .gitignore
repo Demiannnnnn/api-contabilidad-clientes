@@ -64,6 +64,8 @@ desktop.ini
 *.temp
 temp/
 tmp/
+*.bak
+*.backup
 
 # Database
 *.db

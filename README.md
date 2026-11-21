@@ -6,7 +6,7 @@ Server API REST para sistema propio de contabilidad y clientes
 ### Backend
 - **[Node.js](https://nodejs.org/)** - Entorno de ejecución para JavaScript
 - **[Express](https://expressjs.com/)** v5.2.1 - Framework web minimalista y rápido
-- **[Prisma](https://www.prisma.io/)** v7.3.0 - ORM moderno para Node.js y TypeScript
+- **[Prisma](https://www.prisma.io/)** v5.22.0 - ORM moderno para Node.js y TypeScript
 - **[PostgreSQL](https://www.postgresql.org/)** - Sistema de gestión de base de datos relacional
 
 ### Validación y Parseo

@@ -47,6 +47,17 @@ CREATE TABLE "Cliente" (
     "telefono" TEXT,
     "direccion" TEXT,
     "giro" TEXT,
+    "razon_social" TEXT,
+    "nombre_fantasia" TEXT,
+    "region" TEXT,
+    "comuna" TEXT,
+    "ciudad" TEXT,
+    "nombre_contacto" TEXT,
+    "email_contacto" TEXT,
+    "condicion_pago" BOOLEAN,
+    "dias_credito" INTEGER NOT NULL,
+    "limite_credito" INTEGER NOT NULL,
+    "desc_auto" DECIMAL(65,30) NOT NULL,
     "tipo" "TipoCliente" NOT NULL DEFAULT 'PERSONA',
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL,
@@ -130,6 +141,35 @@ CREATE TABLE "Categoria" (
     CONSTRAINT "Categoria_pkey" PRIMARY KEY ("id")
 );
 
+-- CreateTable
+CREATE TABLE "RefreshToken" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "tokenHash" TEXT NOT NULL,
+    "machineId" TEXT,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "revoked" BOOLEAN NOT NULL DEFAULT false,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+
+    CONSTRAINT "RefreshToken_pkey" PRIMARY KEY ("id")
+);
+
+-- CreateTable
+CREATE TABLE "Licence" (
+    "id" SERIAL NOT NULL,
+    "userId" INTEGER NOT NULL,
+    "licenceKey" TEXT NOT NULL,
+    "status" TEXT NOT NULL,
+    "issuedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "expiresAt" TIMESTAMP(3) NOT NULL,
+    "type" TEXT,
+    "notes" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    "updatedAt" TIMESTAMP(3) NOT NULL,
+
+    CONSTRAINT "Licence_pkey" PRIMARY KEY ("id")
+);
+
 -- CreateIndex
 CREATE UNIQUE INDEX "User_email_key" ON "User"("email");
 
@@ -153,6 +193,15 @@ CREATE UNIQUE INDEX "Trabajador_userId_rut_key" ON "Trabajador"("userId", "rut")
 
 -- CreateIndex
 CREATE UNIQUE INDEX "Categoria_userId_nombre_key" ON "Categoria"("userId", "nombre");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "RefreshToken_tokenHash_key" ON "RefreshToken"("tokenHash");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Licence_userId_key" ON "Licence"("userId");
+
+-- CreateIndex
+CREATE UNIQUE INDEX "Licence_licenceKey_key" ON "Licence"("licenceKey");
 
 -- AddForeignKey
 ALTER TABLE "ContadorCliente" ADD CONSTRAINT "ContadorCliente_contadorId_fkey" FOREIGN KEY ("contadorId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
@@ -189,3 +238,9 @@ ALTER TABLE "Trabajador" ADD CONSTRAINT "Trabajador_userId_fkey" FOREIGN KEY ("u
 
 -- AddForeignKey
 ALTER TABLE "Categoria" ADD CONSTRAINT "Categoria_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "RefreshToken" ADD CONSTRAINT "RefreshToken_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+
+-- AddForeignKey
+ALTER TABLE "Licence" ADD CONSTRAINT "Licence_userId_fkey" FOREIGN KEY ("userId") REFERENCES "User"("id") ON DELETE RESTRICT ON UPDATE CASCADE;
